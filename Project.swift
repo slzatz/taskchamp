@@ -9,7 +9,10 @@ let project = Project(
         "SWIFT_OBJC_INTEROP_MODE": "objcxx",
         "SWIFT_INCLUDE_PATHS": ["$(PROJECT_DIR)"],
         "DEVELOPMENT_TEAM": .string(developmentTeam),
-        "CODE_SIGN_STYLE": "Automatic"
+        "CODE_SIGN_STYLE": "Automatic",
+        // The Rust bridge is only built for arm64 simulators; without this, Release simulator
+        // builds (the scheme's Run action) also try to link x86_64 and fail.
+        "EXCLUDED_ARCHS[sdk=iphonesimulator*]": "x86_64"
     ], defaultSettings: .recommended),
     targets: [
         .target(
