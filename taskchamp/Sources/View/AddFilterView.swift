@@ -33,18 +33,26 @@ public struct AddFilterView: View, UseKeyboardToolbar {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Filter", text: $nlpInput)
-                        .font(.system(.body, design: .monospaced))
-                        .autocapitalization(.none)
-                        .autocorrectionDisabled()
-                        .focused($isFocusedNLP)
-                        .onAppear {
-                            isFocusedNLP = false
-                        }
-                        .submitLabel(.go)
-                        .onSubmit {
+                    HStack {
+                        TextField("Filter", text: $nlpInput)
+                            .font(.system(.body, design: .monospaced))
+                            .autocapitalization(.none)
+                            .autocorrectionDisabled()
+                            .focused($isFocusedNLP)
+                            .onAppear {
+                                isFocusedNLP = false
+                            }
+                            .submitLabel(.go)
+                            .onSubmit {
+                                addFilter()
+                            }
+                        Button("Save") {
                             addFilter()
                         }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                        .disabled(nlpInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
                 } header: {
                     HStack {
                         Text("Command Line Input")
