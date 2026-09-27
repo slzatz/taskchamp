@@ -147,8 +147,6 @@ let project = Project(
             runAction: .runAction(
                 configuration: .release,
                 executable: .target("taskchamp")
-                // TODO: add store kit configuration when ready
-                // options: .options(storeKitConfigurationPath: .path("taskchamp/Resources/Products.storekit"))
             )
         )
     ]

@@ -1,0 +1,106 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this is
+
+Taskchamp is a native iOS (17+) SwiftUI client for [Taskwarrior](https://taskwarrior.org/) 3.x. It embeds the Rust `taskchampion` library through a Swift bridge and syncs with the same backends Taskwarrior does (taskchampion-sync-server, S3, GCP, or a shared iCloud Drive folder). The project is generated with Tuist; there is no checked-in `.xcodeproj`.
+
+## Toolchain and commands
+
+Prereqs: `brew install swiftlint swiftformat mise`, Rust via rustup, then `mise install` (pins Tuist 4.84.2 from `.mise.toml`). All Tuist commands go through `mise exec -- tuist ...`; the `makefile` wraps them.
+
+```sh
+make up          # clone/pull + cargo-build task-champion-swift, tuist install, tuist generate (opens Xcode)
+make generate    # regenerate the Xcode project after editing Project.swift or Tuist/Package.swift
+make build       # tuist build
+make lint        # swiftlint over taskchamp/, taskchampWidget/, taskchampShared/ Sources
+make format      # swiftformat over the same three source roots
+make edit        # tuist edit (edit Project.swift with autocomplete)
+```
+
+Tests (target `taskchampTests`, sources in `taskchamp/Tests/`, currently a single placeholder test):
+
+```sh
+make test
+# single test
+mise exec -- tuist test taskchamp --test-targets taskchampTests/TaskchampTests/test_twoPlusTwo_isFour
+```
+
+Simulator build without opening Xcode (verified with Xcode 27; pick any id from `xcrun simctl list devices available`):
+
+```sh
+mise exec -- tuist generate --no-open
+xcodebuild -workspace taskchamp.xcworkspace -scheme taskchamp -configuration Debug \
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro' build
+```
+
+Notes:
+- Xcode 27 rejects iOS deployment targets below 15. `Tuist/Package.swift` uses `PackageSettings.targetSettings` to force iOS 17 on package targets that declare older platforms (Taskchampion, cmark-gfm, NetworkImage, MarkdownUI). If a new dependency fails with "deployment target ... is set to 12.0", add it there and regenerate.
+- `scripts/pre_build_script.sh` runs as an Xcode pre-build phase and runs SwiftLint (warnings only) on every build. Run `make format && make lint` before committing.
+- Style is enforced by `.swiftlint.yml` (opt-in `force_unwrapping`, `implicitly_unwrapped_optional`, `trailing_closure`, `strict_fileprivate`, function body ≤ 60 lines warning) and `.swiftformat` (4-space indent, max width 120, arguments/parameters/collections wrap `before-first`, `--commas inline`, `--stripunusedargs always`).
+
+### The Rust dependency
+
+`Taskchampion` is a local Swift package at `task-champion-swift/taskchampion-swift/taskchampion-swift/` (a gitignored checkout inside the repo root, cloned over HTTPS from `marriagav/task-champion-swift` by `make clone_taskchampion`). It carries local, uncommitted edits: `taskchampion` is pinned to `=3.1.0` in its `Cargo.toml` to match the Taskwarrior 3.5 used alongside this app. The build script clones it only if missing and never pulls, so those edits survive rebuilds. `scripts/build_taskchampion_swift.sh` cargo-builds it for `aarch64-apple-ios` (release) and `aarch64-apple-ios-sim` (debug), then copies the static libs, headers, and swift-bridge generated Swift into `RustXcframework.xcframework`. `Project.swift` sets `SWIFT_OBJC_INTEROP_MODE=objcxx` for this bridge. Anything the Swift side needs from taskchampion that isn't already exposed (e.g. a new `Replica` method) has to be added in that Rust repo, not here.
+
+## Repo status
+
+This is a personal fork for personal use; it does not track upstream and has no CI or App Store release tooling (fastlane, Xcode Cloud scripts, and StoreKit/paywall code were removed). The marketing version (`CFBundleShortVersionString`) is hardcoded in `Project.swift` three times (app, widget, share extension). Bump all three together.
+
+## Architecture
+
+### Targets (all defined in `Project.swift`)
+
+| Target | Product | Role |
+|---|---|---|
+| `taskchampShared` | static framework | Models, services, utilities. Depends on `Taskchampion` (Rust) and `SoulverCore`. Everything the extensions need lives here. |
+| `taskchamp` | app | SwiftUI views, App Intents/Shortcuts, navigation. Depends on `MarkdownUI`. |
+| `taskchampWidget` | app extension | Home/lock-screen widgets + widget intents (complete task, quick add). |
+| `taskchampShareExtension` | app extension | Share-sheet "quick add" from text/URLs. |
+| `taskchampTests` | unit tests | |
+
+All three executables share the app group `group.com.mav.taskchamp` and the iCloud container `iCloud.com.mav.taskchamp`, which is how they open the same task database and UserDefaults.
+
+### Data flow: one Replica, wrapped by one singleton
+
+`TaskchampionService.shared` (`taskchampShared/Sources/Services/TaskchampionService.swift`) owns the single `Replica` (Rust object). Every entry point (app `ContentView.task`, widget `Provider.getTasks`, each `AppIntent.perform`) must call `setDbUrl(path:)` first; it is idempotent for the same path.
+
+- Reads (`getTasks`, `getPendingTasks`, `getTask`, `getAllProjects`) are `@MainActor` because Rust `TaskRef` handles are not Sendable. `TCTask(from: TaskRef)` copies everything into a plain Swift struct immediately.
+- Writes (`createTask`, `updateTask`, `startTask`, `stopTask`, status toggles) call `replica.sync_no_server()` right after mutating to rebuild the working set, then kick off a detached `sync()` unless `skipSync: true`. `sync()` cancels any in-flight sync task, sets `needToSync` on failure, and reloads widget timelines.
+- Rust strings go in via `.intoRustString()`; tags via `RustVec<Tag>`; the Obsidian note is passed as a `RustVec<Annotation>`.
+
+### Where the database lives
+
+`FileService.getDestinationPathForLocalReplica()` picks the directory by the selected sync type:
+- `.local` (iCloud Sync): the ubiquity container's `Documents/taskchamp` — the same folder the user's Mac Taskwarrior points `sync.local.server_dir` at.
+- Everything else: `<app group container>/taskchamp`.
+
+Switching sync type therefore switches which sqlite file is opened.
+
+### Sync backends
+
+`SyncServiceProtocol` (`taskchampShared/Sources/Services/SyncServiceProtocol.swift`) is implemented by static-only classes `NoSyncService`, `ICloudSyncService`, `RemoteSyncService`, `GcpSyncService`, `AwsSyncService`. Each reads its config from `UserDefaultsManager.shared`, reports `isAvailable()`, and calls the matching `replica.sync_*` on a background queue. `TaskchampionService.SyncType` + `getSyncServiceFromType` is the registry. Adding a backend means: a `SyncType` case, a service class, new `TCUserDefaults` keys, a settings view under `taskchamp/Sources/View/SyncService/`, and a README section.
+
+### Persistence besides the replica
+
+- `UserDefaultsManager` (`taskchampShared/Sources/Utilities/UserDefaults.swift`): `.shared` is the app-group suite (visible to widget/share extension); `.standard` is app-only. All keys are the `TCUserDefaults` enum. Saved filters are stored twice: in SwiftData for the app UI and as JSON under `.savedFilters` so widgets/intents can read them without SwiftData.
+- SwiftData `ModelContainer(for: TCFilter.self, TCTag.self)` is created by each host (`TaskchampApp.init`, `ShareViewController.viewDidLoad`) and handed to `SwiftDataService.shared.container`. `TCTag.tagFactory` dedupes tags against SwiftData and feeds the `NLPService` autocomplete cache.
+
+### Filtering and tags
+
+- `TCFilter.fullDescription` is a Taskwarrior-style filter string (`+tag -tag project:x prio:H status:pending recur`, with `or` and parentheses). `FilterParser` in `FilterExpression.swift` tokenizes it into a `FilterExpression` tree; `TCTask.taskFactory(from:withFilter:)` applies it. The default "My tasks" filter short-circuits to `replica.pending_tasks()`.
+- Recurring template tasks (`status == recurring`) are hidden unless the filter explicitly asks for `status:recurring`.
+- `TCSyntheticTag` (OVERDUE, DUE, TODAY, WEEK, LATEST, …) mirrors Taskwarrior's virtual tags and is computed in Swift inside `TCTask.init(from:)`; these are all-caps ASCII and are hidden from tag suggestions.
+- `NLPService` provides autocomplete for `prio:`/`project:`/`status:`/`+`/`-` surfaces and uses SoulverCore for natural-language due dates in the create-task field.
+
+### Cross-target entry points
+
+- Deep links use the `taskchamp://` scheme, handled in `ContentView.handleDeepLink`: `task/<uuid>`, `task/new?content=…` (also falls back to `.pendingNewTaskContent` in UserDefaults), and `filter/<uuid|default>`. Widgets, notifications, and Shortcuts all route through these; notification taps arrive via `.TCTappedDeepLinkNotification`.
+- `FilterAppEntity.swift` is duplicated verbatim in `taskchamp/Sources/Intents/` and `taskchampWidget/Sources/Intents/` because App Intents entities must compile into each extension. Edit both. The shared helpers (`getFilterFromUserDefaults`, `getSavedFiltersFromUserDefaults`) live in `taskchampShared/Sources/Models/FilterAppEntity.swift`.
+- Obsidian integration is a task annotation of the form `task-note: <name>`; `FileService` resolves the note folder through a security-scoped bookmark stored in UserDefaults.
+
+### Misc conventions
+
+- Navigation is a persisted `NavigationPath` (`PathStore`), with `GlobalState` (`isSyncingTasks`, `replicaReady`) injected via `.environment`.
+- Views are split as `FooView.swift` + `FooView-Ext.swift` (extension holding actions/helpers) to stay under the lint body-length limits.

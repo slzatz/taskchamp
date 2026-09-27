@@ -98,10 +98,6 @@ extension AddFilterView {
     }
 
     func selectFilter(_ filter: TCFilter) {
-        if !storeKit.hasPremiumAccess() {
-            showPaywall = true
-            return
-        }
         if filter == selectedFilter {
             selectedFilter = TCFilter.defaultFilter
         } else {
@@ -160,10 +156,6 @@ extension AddFilterView {
     }
 
     func selectProject(_ project: String) {
-        if !storeKit.hasPremiumAccess() {
-            showPaywall = true
-            return
-        }
         let filter = NLPService.shared.createFilter(from: "project:\(project)")
         guard filter.isValidFilter else { return }
         selectedFilter = filter
@@ -172,10 +164,6 @@ extension AddFilterView {
     }
 
     func saveProjectAsFilter(_ project: String, favorite: Bool) {
-        if !storeKit.hasPremiumAccess() {
-            showPaywall = true
-            return
-        }
         let query = "project:\(project)"
         if let existing = filters.first(where: { $0.fullDescription == query }) {
             withAnimation {

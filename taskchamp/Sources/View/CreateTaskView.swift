@@ -4,7 +4,6 @@ import taskchampShared
 // swiftlint:disable:next type_body_length
 public struct CreateTaskView: View, UseKeyboardToolbar {
     @Environment(\.dismiss) var dismiss
-    @Environment(StoreKitManager.self) var storeKit: StoreKitManager
     @Environment(GlobalState.self) var globalState: GlobalState
 
     var initialContent: String = ""
@@ -28,7 +27,6 @@ public struct CreateTaskView: View, UseKeyboardToolbar {
     @State private var due: Date = .init()
     @State private var time: Date = .init()
 
-    @State private var showPaywall = false
     @State private var showTagPopover = false
     @State private var showProjectPopover = false
     @State private var isShowingAlert = false
@@ -193,11 +191,6 @@ public struct CreateTaskView: View, UseKeyboardToolbar {
                             return
                         }
 
-                        if !storeKit.hasPremiumAccess() && !tags.isEmpty {
-                            showPaywall = true
-                            return
-                        }
-
                         let date: Date? = didSetDate ? due : nil
                         let time: Date? = didSetTime
                             ? time
@@ -301,9 +294,6 @@ public struct CreateTaskView: View, UseKeyboardToolbar {
                     dismiss()
                 }
                 Button("Cancel", role: .cancel) {}
-            }
-            .navigationDestination(isPresented: $showPaywall) {
-                TCPaywall()
             }
             .navigationDestination(isPresented: $showTagPopover) {
                 AddTagView(selectedTags: $tags)

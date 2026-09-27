@@ -7,6 +7,14 @@ import ProjectDescription
 let packageSettings = PackageSettings(
     productTypes: [
         "MarkdownUI": .framework // default is .staticFramework
+    ],
+    // Xcode 27 rejects iOS deployment targets below 15; several packages still declare 12/14.
+    targetSettings: [
+        "Taskchampion": .settings(base: ["IPHONEOS_DEPLOYMENT_TARGET": "17.0"]),
+        "cmark-gfm": .settings(base: ["IPHONEOS_DEPLOYMENT_TARGET": "17.0"]),
+        "cmark-gfm-extensions": .settings(base: ["IPHONEOS_DEPLOYMENT_TARGET": "17.0"]),
+        "NetworkImage": .settings(base: ["IPHONEOS_DEPLOYMENT_TARGET": "17.0"]),
+        "MarkdownUI": .settings(base: ["IPHONEOS_DEPLOYMENT_TARGET": "17.0"])
     ]
 )
 #endif

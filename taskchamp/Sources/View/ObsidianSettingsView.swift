@@ -3,7 +3,6 @@ import SwiftUI
 import taskchampShared
 
 struct ObsidianSettingsView: View {
-    @Environment(StoreKitManager.self) var storeKit: StoreKitManager
     @Environment(\.dismiss) var dismiss
 
     @State private var showObsidianInfoPopover = false

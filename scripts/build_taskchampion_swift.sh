@@ -1,22 +1,7 @@
 #!/bin/sh
 set -e  # Exit immediately if a command exits with a non-zero status
 
-# Default value for the skip-sim flag
-SKIP_SIM=false
 export IPHONEOS_DEPLOYMENT_TARGET=17.0
-
-# Parse flags manually
-for arg in "$@"; do
-    case $arg in
-        --skip-sim)
-            SKIP_SIM=true
-            shift # Remove --skip-sim from the argument list
-            ;;
-        *)
-            # Other flags or arguments can go here
-            ;;
-    esac
-done
 
 # Get the script's directory
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -26,42 +11,14 @@ TASKCHAMPION_SWIFT_DIR="$SCRIPT_DIR/../task-champion-swift/taskchampion-swift"
 FRAMEWORK_DIR="$TASKCHAMPION_SWIFT_DIR/taskchampion-swift/RustXcframework.xcframework"
 BASE_SOURCES_DIR="$TASKCHAMPION_SWIFT_DIR/taskchampion-swift/Sources/Taskchampion"
 
-# List of expected binaries
-BINARIES=(
-  "$FRAMEWORK_DIR/ios-arm64/libtaskchampion_swift.a"
-  "$FRAMEWORK_DIR/ios-arm64_x86_64-simulator/libtaskchampion_swift.a"
-  "$FRAMEWORK_DIR/macos-arm64_x86_64/libtaskchampion_swift.a"
-)
-
-# Check if all required binaries exist
-all_binaries_exist=true
-for BIN in "${BINARIES[@]}"; do
-  if [ ! -f "$BIN" ]; then
-    if [ "$SKIP_SIM" = true ] && [[ "$BIN" == *"-simulator"* ]]; then
-      continue
-    fi
-    all_binaries_exist=false
-    break
-  fi
-done
-
-# if [ "$all_binaries_exist" = true ]; then
-#     echo "All Taskchampion Swift libraries exist! Skipping build."
-#     exit 0
-# fi
-
-# Clone or update the repository
-clone_or_update_repo() {
+# Clone the bridge if missing. Never pull: local edits (e.g. the taskchampion
+# version pin in Cargo.toml) must not be overwritten by upstream changes.
+ensure_repo() {
     if [ ! -d "$SCRIPT_DIR/../task-champion-swift" ]; then
-        echo "Directory not present, cloning task-champion-swift..."
-        if [ "$SKIP_SIM" = true ]; then
-            "$SCRIPT_DIR/clone_taskchampion_swift.sh" --ci
-        else
-            "$SCRIPT_DIR/clone_taskchampion_swift.sh"
-        fi
+        echo "task-champion-swift not present, cloning..."
+        "$SCRIPT_DIR/clone_taskchampion_swift.sh"
     else
-        echo "Directory already present, pulling latest changes..."
-        (cd "$TASKCHAMPION_SWIFT_DIR" && git pull)
+        echo "task-champion-swift present (not pulling)."
     fi
 }
 
@@ -86,17 +43,6 @@ install_rust_targets() {
     echo "Adding Rust targets..."
     rustup target add aarch64-apple-ios
 }
-
-# Ensure cargo-lipo is installed
-install_cargo_lipo() {
-    if ! cargo install --list | grep -q "cargo-lipo"; then
-        echo "Installing cargo-lipo..."
-        cargo install cargo-lipo
-    else
-        echo "cargo-lipo is already installed."
-    fi
-}
-
 
 # Build Taskchampion Swift
 build_taskchampion_swift_for_sim() {
@@ -172,15 +118,12 @@ copy_generated_files_for_sim() {
     echo "Taskchampion Swift libraries generated for simulator! 🎉"
 }
 
-### **Execution Order**
-clone_or_update_repo
+### Execution order
+ensure_repo
 check_cargo
-if [ "$SKIP_SIM" = false ]; then
-    install_rust_targets_for_sim
-    build_taskchampion_swift_for_sim
-    copy_generated_files_for_sim
-fi
+install_rust_targets_for_sim
+build_taskchampion_swift_for_sim
+copy_generated_files_for_sim
 install_rust_targets
-# install_cargo_lipo # Not currently used
 build_taskchampion_swift
 copy_generated_files

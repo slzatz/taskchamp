@@ -5,7 +5,6 @@ import taskchampShared
 import WidgetKit
 
 public struct AddFilterView: View, UseKeyboardToolbar {
-    @Environment(StoreKitManager.self) var storeKit: StoreKitManager
 
     @Environment(\.modelContext) var modelContext
     @Environment(\.dismiss) var dismiss
@@ -17,7 +16,6 @@ public struct AddFilterView: View, UseKeyboardToolbar {
     @State var nlpInput = ""
     @State var nlpPlaceholder =
         "project:my-project prio:M status:pending +tag -tag\n(project:A or project:B) +urgent"
-    @State var showPaywall = false
 
     @State var isShowingAlert = false
     @State var alertTitle = ""
@@ -184,9 +182,6 @@ public struct AddFilterView: View, UseKeyboardToolbar {
                 }
                 .presentationDetents([.medium])
             }
-            .navigationDestination(isPresented: $showPaywall) {
-                TCPaywall()
-            }
             .navigationTitle("Filter your tasks")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
@@ -219,10 +214,6 @@ extension AddFilterView {
     }
 
     func addFilter() {
-        if !storeKit.hasPremiumAccess() {
-            showPaywall = true
-            return
-        }
         withAnimation {
             if nlpInput.isEmpty {
                 alertTitle = "Empty input"

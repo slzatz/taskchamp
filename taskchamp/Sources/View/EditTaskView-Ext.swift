@@ -37,10 +37,6 @@ extension EditTaskView {
                 isShowingObsidianSettings = true
                 return
             }
-            if !storeKit.hasPremiumAccess() {
-                globalState.isShowingPaywall = true
-                return
-            }
             if task.hasNote {
                 let noteUrl = try? FileService.shared.createObsidianNote(
                     for: task.obsidianNote ?? "",

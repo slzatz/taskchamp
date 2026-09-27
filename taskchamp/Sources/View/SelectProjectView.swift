@@ -2,14 +2,12 @@ import SwiftUI
 import taskchampShared
 
 public struct SelectProjectView: View, UseKeyboardToolbar {
-    @Environment(StoreKitManager.self) var storeKit: StoreKitManager
     @Environment(\.dismiss) var dismiss
 
     @Binding var selectedProject: String
 
     @State private var input = ""
     @State private var allProjects: [String] = []
-    @State private var showPaywall = false
 
     @FocusState private var isFocused: Bool
 
@@ -37,10 +35,6 @@ public struct SelectProjectView: View, UseKeyboardToolbar {
     }
 
     private func choose(_ project: String) {
-        if !storeKit.hasPremiumAccess() {
-            showPaywall = true
-            return
-        }
         selectedProject = project
         dismiss()
     }
@@ -98,9 +92,6 @@ public struct SelectProjectView: View, UseKeyboardToolbar {
                     }
                 }
             }
-        }
-        .navigationDestination(isPresented: $showPaywall) {
-            TCPaywall()
         }
         .toolbar {
             ToolbarItem(placement: .keyboard) {

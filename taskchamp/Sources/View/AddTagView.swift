@@ -3,7 +3,6 @@ import SwiftUI
 import taskchampShared
 
 public struct AddTagView: View, UseKeyboardToolbar {
-    @Environment(StoreKitManager.self) var storeKit: StoreKitManager
 
     @Environment(\.modelContext) var modelContext
     @Environment(\.dismiss) var dismiss
@@ -24,7 +23,6 @@ public struct AddTagView: View, UseKeyboardToolbar {
 
     @State private var showPopover = false
     @State private var input = ""
-    @State private var showPaywall = false
 
     @State private var isShowingAlert = false
     @State private var alertTitle = ""
@@ -49,10 +47,6 @@ public struct AddTagView: View, UseKeyboardToolbar {
     }
 
     func onTapTagShared(tag: TCTag) -> Bool {
-        if !storeKit.hasPremiumAccess() {
-            showPaywall = true
-            return false
-        }
         if tag.isSynthetic() {
             alertTitle = "Synthetic tag"
             alertMessage = "You cannot add or remove synthetic tags manually."
@@ -185,9 +179,6 @@ public struct AddTagView: View, UseKeyboardToolbar {
         }
         .alert(isPresented: $isShowingAlert) {
             Alert(title: Text(alertTitle), message: Text(alertMessage), dismissButton: .default(Text("OK")))
-        }
-        .navigationDestination(isPresented: $showPaywall) {
-            TCPaywall()
         }
         .toolbar {
             ToolbarItem(placement: .keyboard) {

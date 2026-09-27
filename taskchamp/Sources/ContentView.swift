@@ -4,14 +4,12 @@ import taskchampShared
 @Observable
 class GlobalState {
     var isSyncingTasks = true
-    var isShowingPaywall = false
     var replicaReady = false
 }
 
 public struct ContentView: View {
     @State private var pathStore = PathStore()
     @State private var globalState = GlobalState()
-    @State private var storeKit = StoreKitManager()
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -123,7 +121,6 @@ public struct ContentView: View {
         }
         .task {
             globalState.isSyncingTasks = true
-            try? await storeKit.onAppInitialization()
             selectedSyncType = getSelectedSyncType()
             guard let selectedSyncType = selectedSyncType else {
                 isShowingSyncServiceModal = true
@@ -159,11 +156,6 @@ public struct ContentView: View {
                 dismissButton: .default(Text("OK"))
             )
         }
-        .sheet(isPresented: $globalState.isShowingPaywall) {
-            TCPaywall()
-                .environment(storeKit)
-        }
-        .environment(storeKit)
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 selectedFilter = getSelectedFilter()
