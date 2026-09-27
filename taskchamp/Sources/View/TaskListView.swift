@@ -290,6 +290,7 @@ public struct TaskListView: View {
                 }
             }
             ToolbarItemGroup(placement: .principal) {
+                DevBadge()
                 if globalState.isSyncingTasks {
                     loadingView()
                 }
