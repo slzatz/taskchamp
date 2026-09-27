@@ -69,7 +69,9 @@ Implemented as written, plus: `prio:None` summarizes as `no prio`; `make test` p
 - Replace the placeholder in `taskchamp/Tests/TaskchampTests.swift` with cases for `compactDescription` and `compactTitle`: the example above, tags, an `or` group, a named filter, the default filter, an unparseable string, and the `priority:` alias.
 - Use `@testable import taskchampShared`. If that import fails in the test target, add `taskchampShared` to its dependencies in `Project.swift`.
 
-## 3. Tighter rows, styled after vimango iOS
+## 3. Tighter rows, styled after vimango iOS — DONE (2026-09-27)
+
+Implemented with the user's choices: tag badges shown (user tags only, synthetic ones filtered out); line limit defaults to 1. After comparing screenshots the user kept the edge-to-edge `.listStyle(.inset)` list rather than vimango's card, and asked for rows tighter than vimango's: `.listRowInsets` top/bottom 2 (leading/trailing 16), which fits ~13 rows instead of ~9. Due dates render compactly in the row ("Today", "Tomorrow", "Oct 1"; year only if not this year, time only if not midnight) instead of `localDate`. `TagBadge` lives in `taskchamp/Sources/View/Components/TagBadge.swift`.
 
 **Reference:** the vimango iOS app is cloned at `~/vimango_ios`. The row is `VimNotes/VimNotes/Views/NoteRowView.swift` and the list is `VimNotes/VimNotes/Views/NoteListView.swift`. Re-read both before starting. The vimango row design, as of 2026-09-27:
 
@@ -94,7 +96,7 @@ Implemented as written, plus: `prio:None` summarizes as `no prio`; `make test` p
 
 - **Build:** `make generate_no_open`, then the simulator build from `CLAUDE.md` (xcodebuild with `-destination 'platform=iOS Simulator,name=iPhone 18 Pro'`). Aim for no new warnings. SwiftLint isn't installed; run `make lint` only if the user installs it.
 - **Tests:** run `make test`; the new filter-summary tests must pass.
-- **Simulator sync (2026-09-27):** after the bundle-ID change, writing the sync prefs from `~/.taskrc` gave `error while unsealing encrypted value` on sync, so the encryption secret written was wrong (maybe quoting in `.taskrc`). The user has to enter it in the app's Sync Settings. The replica stays empty until then, so screenshots of rows need that fixed first.
+- **Simulator sync (2026-09-27):** after the bundle-ID change, writing the sync prefs from `~/.taskrc` gave `error while unsealing encrypted value` on sync, so the encryption secret written was wrong (maybe quoting in `.taskrc`). The user re-entered it in the app's Sync Settings and sync works.
 - **Visual check in the simulator:** the simulator app is now `com.slzatz.taskchamp` with app group `group.com.slzatz.taskchamp`, so its sync settings are gone. Reconfigure it the way the `sync-setup` memory describes: write `remoteServerUrl`, `remoteServerClientId`, `remoteServerEncryptionSecret`, and `selectedSyncType` (JSON `{"remote":{}}` as data) into the app-group preferences via `xcrun simctl spawn booted defaults write <group container>/Library/Preferences/group.com.slzatz.taskchamp …`, with the app terminated. Get the container path from `xcrun simctl get_app_container booted com.slzatz.taskchamp group.com.slzatz.taskchamp`. Never print the secret. Then take screenshots with `xcrun simctl io booted screenshot` of:
   - the default list, where the DEV badge plus "My tasks" appears in a compact inline header
   - a filter such as `status:pending prio:H project:work`, whose header should read `pending H work`

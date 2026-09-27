@@ -7,7 +7,7 @@ public struct AppSettingsView: View {
     @State private var suggestOnlyActiveProjects: Bool = UserDefaultsManager.standard
         .getValue(forKey: .suggestOnlyActiveProjects) ?? true
 
-    @AppStorage(TCUserDefaults.taskCellLineLimit.rawValue) private var taskCellLineLimit: Int = 2
+    @AppStorage(TCUserDefaults.taskCellLineLimit.rawValue) private var taskCellLineLimit: Int = 1
     @AppStorage(TCUserDefaults.dueLookaheadDays.rawValue) private var dueLookaheadDays: Int = 7
     @AppStorage(TCUserDefaults.hasDefaultDueTime.rawValue) private var hasDefaultDueTime: Bool = false
     @AppStorage(TCUserDefaults.defaultDueTimeMinutes.rawValue) private var defaultDueTimeMinutes: Int = 9 * 60

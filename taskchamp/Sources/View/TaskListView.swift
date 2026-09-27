@@ -130,6 +130,7 @@ public struct TaskListView: View {
                     }
                 }
                 .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
             }
         }
         .animation(.default, value: sortType)
