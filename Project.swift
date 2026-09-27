@@ -132,6 +132,8 @@ let project = Project(
     schemes: [
         .scheme(
             name: "taskchamp",
+            buildAction: .buildAction(targets: ["taskchamp"]),
+            testAction: .targets(["taskchampTests"]),
             runAction: .runAction(
                 configuration: .release,
                 executable: .target("taskchamp")

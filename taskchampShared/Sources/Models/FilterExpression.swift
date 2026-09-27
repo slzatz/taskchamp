@@ -35,6 +35,33 @@ public indirect enum FilterExpression {
         }
     }
 
+    /// Short human-readable form for headers, e.g. `status:pending prio:H project:work` → `pending H work`.
+    public var compactDescription: String {
+        compactDescription(nestedInAnd: false)
+    }
+
+    private func compactDescription(nestedInAnd: Bool) -> String {
+        switch self {
+        case .and(let expressions):
+            return expressions.map { $0.compactDescription(nestedInAnd: true) }.joined(separator: " ")
+        case .or(let expressions):
+            let joined = expressions.map { $0.compactDescription(nestedInAnd: false) }.joined(separator: " | ")
+            return nestedInAnd ? "(\(joined))" : joined
+        case .tag(let name):
+            return "+\(name)"
+        case .notTag(let name):
+            return "-\(name)"
+        case .project(let name):
+            return name
+        case .priority(let prio):
+            return prio == .none ? "no prio" : prio.rawValue
+        case .status(let status):
+            return status.rawValue
+        case .recur:
+            return "recur"
+        }
+    }
+
     func containsStatus(_ status: TCTask.Status) -> Bool {
         switch self {
         case .status(let taskStatus):
@@ -117,6 +144,8 @@ public enum FilterParser {
                 tokens.append(.project(String(word.dropFirst("project:".count))))
             case _ where word.hasPrefix("prio:"):
                 tokens.append(.priority(String(word.dropFirst("prio:".count))))
+            case _ where word.hasPrefix("priority:"):
+                tokens.append(.priority(String(word.dropFirst("priority:".count))))
             case _ where word.hasPrefix("status:"):
                 tokens.append(.status(String(word.dropFirst("status:".count))))
             case _ where word.lowercased() == "recur":

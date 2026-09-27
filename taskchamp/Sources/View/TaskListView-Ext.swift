@@ -18,9 +18,9 @@ extension TaskListView {
                         selectFilter(filter)
                     } label: {
                         if selectedFilter.id == filter.id {
-                            Label(filter.displayName, systemImage: SFSymbols.checkmark.rawValue)
+                            Label(filter.compactTitle, systemImage: SFSymbols.checkmark.rawValue)
                         } else {
-                            Text(filter.displayName)
+                            Text(filter.compactTitle)
                         }
                     }
                 }
@@ -67,6 +67,16 @@ extension TaskListView {
             || $0.status.rawValue.localizedCaseInsensitiveContains(searchText)
             || $0.project?.localizedCaseInsensitiveContains(searchText) ?? false
         }
+    }
+
+    var headerTitle: String {
+        if searchedTasks.isEmpty && selectedFilter.fullDescription == TCFilter.defaultFilter.fullDescription {
+            return ""
+        }
+        if isEditModeActive {
+            return selection.isEmpty ? "Select Tasks" : "\(selection.count) Selected"
+        }
+        return selectedFilter.compactTitle
     }
 
     var isEditModeActive: Bool {

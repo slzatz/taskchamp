@@ -21,7 +21,7 @@ This plan was written in one session and is meant to be implemented in a later o
 - `taskchamp/Sources/View/Cells/TaskCellView.swift`: row is a two-line `VStack`. Line 1 is the description (line limit from the `taskCellLineLimit` user setting, 1–5, default 2) plus the project in italic subheadline on the right. Line 2 is the due date, an active icon, recurrence, and the colored priority letter. There is `.padding(.vertical, 3)` on line 1.
 - `Project.swift`: targets and base settings (Tuist; run `make generate_no_open` after edits).
 
-## 1. DEV badge on the main screen
+## 1. DEV badge on the main screen — DONE (2026-09-27)
 
 User choice: a small colored "DEV" capsule in the nav bar. No accent-color or icon change.
 
@@ -29,7 +29,9 @@ User choice: a small colored "DEV" capsule in the nav bar. No accent-color or ic
 - New small view `taskchamp/Sources/View/Components/DevBadge.swift`: `Text("DEV")`, caption2 bold, white on orange (or red) `Capsule`, compact padding. Body wrapped in `#if TASKCHAMP_DEV … #endif` so it renders nothing otherwise.
 - Place it in the header built in item 2, so badge, title, and sync spinner share the `.principal` slot.
 
-## 2. Compact filter title
+## 2. Compact filter title — DONE (2026-09-27)
+
+Implemented as written, plus: `prio:None` summarizes as `no prio`; `make test` previously ran nothing because the `taskchamp` scheme had no test action, so `Project.swift` now adds `testAction: .targets(["taskchampTests"])`. `ContentView`'s `largeTitleTextAttributes` was left in place.
 
 **Summary logic (shared, testable)**
 
@@ -92,6 +94,7 @@ User choice: a small colored "DEV" capsule in the nav bar. No accent-color or ic
 
 - **Build:** `make generate_no_open`, then the simulator build from `CLAUDE.md` (xcodebuild with `-destination 'platform=iOS Simulator,name=iPhone 18 Pro'`). Aim for no new warnings. SwiftLint isn't installed; run `make lint` only if the user installs it.
 - **Tests:** run `make test`; the new filter-summary tests must pass.
+- **Simulator sync (2026-09-27):** after the bundle-ID change, writing the sync prefs from `~/.taskrc` gave `error while unsealing encrypted value` on sync, so the encryption secret written was wrong (maybe quoting in `.taskrc`). The user has to enter it in the app's Sync Settings. The replica stays empty until then, so screenshots of rows need that fixed first.
 - **Visual check in the simulator:** the simulator app is now `com.slzatz.taskchamp` with app group `group.com.slzatz.taskchamp`, so its sync settings are gone. Reconfigure it the way the `sync-setup` memory describes: write `remoteServerUrl`, `remoteServerClientId`, `remoteServerEncryptionSecret`, and `selectedSyncType` (JSON `{"remote":{}}` as data) into the app-group preferences via `xcrun simctl spawn booted defaults write <group container>/Library/Preferences/group.com.slzatz.taskchamp …`, with the app terminated. Get the container path from `xcrun simctl get_app_container booted com.slzatz.taskchamp group.com.slzatz.taskchamp`. Never print the secret. Then take screenshots with `xcrun simctl io booted screenshot` of:
   - the default list, where the DEV badge plus "My tasks" appears in a compact inline header
   - a filter such as `status:pending prio:H project:work`, whose header should read `pending H work`

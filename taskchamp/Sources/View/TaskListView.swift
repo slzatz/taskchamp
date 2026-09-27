@@ -38,7 +38,6 @@ public struct TaskListView: View {
         isShowingCreateTaskView: Binding<Bool>,
         createTaskContent: Binding<String>
     ) {
-        UINavigationBar.appearance().largeTitleTextAttributes = [.foregroundColor: UIColor.tintColor]
         _isShowingICloudAlert = isShowingICloudAlert
         _selectedFilter = selectedFilter
         _selectedSyncType = selectedSyncType
@@ -74,11 +73,17 @@ public struct TaskListView: View {
         )
     }
 
-    private func loadingView() -> some View {
-        HStack {
-            Text("Syncing...")
-            ProgressView()
-                .progressViewStyle(CircularProgressViewStyle())
+    private var headerView: some View {
+        HStack(spacing: 6) {
+            DevBadge()
+            Text(headerTitle)
+                .font(.headline)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            if globalState.isSyncingTasks {
+                ProgressView()
+                    .controlSize(.small)
+            }
         }
     }
 
@@ -289,11 +294,8 @@ public struct TaskListView: View {
                     EditButton()
                 }
             }
-            ToolbarItemGroup(placement: .principal) {
-                DevBadge()
-                if globalState.isSyncingTasks {
-                    loadingView()
-                }
+            ToolbarItem(placement: .principal) {
+                headerView
             }
         }
         .onAppear {
@@ -345,13 +347,9 @@ public struct TaskListView: View {
                     updateTasks()
                 }
         }
-        .navigationTitle(
-            (searchedTasks.isEmpty && selectedFilter.fullDescription == TCFilter.defaultFilter.fullDescription) ? "" :
-                isEditModeActive ?
-                selection
-                .isEmpty ? "Select Tasks" : "\(selection.count) Selected" :
-                selectedFilter.displayName
-        )
+        // Hidden behind the principal header, but still supplies the back-button label.
+        .navigationTitle(headerTitle)
+        .navigationBarTitleDisplayMode(.inline)
         .environment(\.editMode, $editMode)
         .onChange(of: scenePhase) { _, newScenePhase in
             if newScenePhase == .active {

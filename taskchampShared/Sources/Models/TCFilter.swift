@@ -51,6 +51,18 @@ public class TCFilter: Codable {
         return fullDescription
     }
 
+    /// Short title for headers and menus: the filter's name if it has one, otherwise a
+    /// compact summary of the filter expression (`pending H work`).
+    public var compactTitle: String {
+        if let name, !name.isEmpty {
+            return name
+        }
+        if isDefaultFilter {
+            return "My tasks"
+        }
+        return filterExpression?.compactDescription ?? fullDescription
+    }
+
     public var realDue: Date? {
         return didSetDue ? due : nil
     }
