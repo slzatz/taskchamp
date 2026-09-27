@@ -4,14 +4,19 @@ import SwiftUI
 struct TagBadge: View {
     let text: String
     let color: Color
+    /// Draw the text in the badge color instead of secondary (used for priority).
+    var tintedText = false
+
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Text(text)
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(tintedText ? AnyShapeStyle(color) : AnyShapeStyle(.secondary))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(color.opacity(0.12))
+            // vimango's 0.12 is too faint on the dark gray list.
+            .background(color.opacity(colorScheme == .dark ? 0.25 : 0.12))
             .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 }

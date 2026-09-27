@@ -170,6 +170,9 @@ public struct TaskListView: View {
             $0.searchable(text: $searchText)
         }
         .listStyle(.inset)
+        // Same dark gray as vimango's list rows in dark mode (white in light mode).
+        .scrollContentBackground(.hidden)
+        .background(Color(.secondarySystemGroupedBackground))
         .onAppear {
             setupNotifications()
         }

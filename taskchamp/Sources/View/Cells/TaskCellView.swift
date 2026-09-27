@@ -45,7 +45,7 @@ public struct TaskCellView: View {
                         TagBadge(text: project, color: .blue)
                     }
                     if let priority = task.priority, priority != .none {
-                        TagBadge(text: priority.rawValue, color: priorityColor(priority))
+                        TagBadge(text: priority.rawValue, color: priorityColor(priority), tintedText: true)
                     }
                     ForEach(userTags, id: \.name) { tag in
                         TagBadge(text: tag.name, color: .green)
