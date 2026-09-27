@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Taskchamp is a native iOS (17+) SwiftUI client for [Taskwarrior](https://taskwarrior.org/) 3.x. It embeds the Rust `taskchampion` library through a Swift bridge and syncs with the same backends Taskwarrior does (taskchampion-sync-server, S3, GCP, or a shared iCloud Drive folder). The project is generated with Tuist; there is no checked-in `.xcodeproj`.
+Taskchamp is a native iOS (17+) SwiftUI client for [Taskwarrior](https://taskwarrior.org/) 3.x. It embeds the Rust `taskchampion` library through a Swift bridge and syncs with the same backends Taskwarrior does (taskchampion-sync-server, S3, or GCP; the upstream iCloud Drive option is disabled in this fork). The project is generated with Tuist; there is no checked-in `.xcodeproj`.
 
 ## Toolchain and commands
 
@@ -60,7 +60,7 @@ This is a personal fork for personal use; it does not track upstream and has no 
 | `taskchampShareExtension` | app extension | Share-sheet "quick add" from text/URLs. |
 | `taskchampTests` | unit tests | |
 
-All three executables share the app group `group.com.mav.taskchamp` and the iCloud container `iCloud.com.mav.taskchamp`, which is how they open the same task database and UserDefaults.
+All three executables share the app group `group.com.slzatz.taskchamp`, which is how they open the same task database and UserDefaults. Bundle IDs are under `com.slzatz.taskchamp` and the home-screen name is "Taskchamp Dev" so this build installs alongside the App Store Taskchamp (`com.mav.taskchamp`). Signing is automatic with the team set by `developmentTeam` at the top of `Project.swift`. There is no iCloud entitlement: `ICloudSyncService` and its settings view still exist but `.local` is filtered out of the sync picker in `SyncServiceView`.
 
 ### Data flow: one Replica, wrapped by one singleton
 
@@ -73,7 +73,7 @@ All three executables share the app group `group.com.mav.taskchamp` and the iClo
 ### Where the database lives
 
 `FileService.getDestinationPathForLocalReplica()` picks the directory by the selected sync type:
-- `.local` (iCloud Sync): the ubiquity container's `Documents/taskchamp` — the same folder the user's Mac Taskwarrior points `sync.local.server_dir` at.
+- `.local` (iCloud Sync, hidden in this fork): the ubiquity container's `Documents/taskchamp`.
 - Everything else: `<app group container>/taskchamp`.
 
 Switching sync type therefore switches which sqlite file is opened.

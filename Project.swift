@@ -1,34 +1,32 @@
 import ProjectDescription
 
+/// Apple Developer team used for automatic code signing (Membership details on developer.apple.com).
+let developmentTeam = "LAH24RFYPW"
+
 let project = Project(
     name: "taskchamp",
     settings: .settings(base: [
         "SWIFT_OBJC_INTEROP_MODE": "objcxx",
-        "SWIFT_INCLUDE_PATHS": ["$(PROJECT_DIR)"]
+        "SWIFT_INCLUDE_PATHS": ["$(PROJECT_DIR)"],
+        "DEVELOPMENT_TEAM": .string(developmentTeam),
+        "CODE_SIGN_STYLE": "Automatic"
     ], defaultSettings: .recommended),
     targets: [
         .target(
             name: "taskchamp",
             destinations: .iOS,
             product: .app,
-            bundleId: "com.mav.taskchamp",
+            bundleId: "com.slzatz.taskchamp",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(
                 with: [
                     "CFBundleName": "Taskchamp",
+                    "CFBundleDisplayName": "Taskchamp Dev",
                     "UILaunchScreen": [
                         "UIColorName": "LaunchBackground"
                     ],
                     "NSAccentColorName": "AccentColor",
                     "ITSAppUsesNonExemptEncryption": false,
-                    "NSUbiquitousContainers": [
-                        "iCloud.com.mav.taskchamp":
-                            [
-                                "NSUbiquitousContainerIsDocumentScopePublic": true,
-                                "NSUbiquitousContainerName": "taskchamp",
-                                "NSUbiquitousContainerSupportedFolderLevels": "Any"
-                            ]
-                    ],
                     "CFBundleShortVersionString": "3.7"
                 ]
             ),
@@ -36,11 +34,8 @@ let project = Project(
             resources: ["taskchamp/Resources/**"],
             entitlements: .dictionary(
                 [
-                    "com.apple.developer.icloud-container-identifiers": ["iCloud.com.mav.taskchamp"],
-                    "com.apple.developer.icloud-services": ["CloudDocuments", "CloudKit"],
-                    "com.apple.developer.ubiquity-container-identifiers": ["iCloud.com.mav.taskchamp"],
                     "com.apple.developer.usernotifications.time-sensitive": true,
-                    "com.apple.security.application-groups": ["group.com.mav.taskchamp"]
+                    "com.apple.security.application-groups": ["group.com.slzatz.taskchamp"]
                 ]
             ),
             scripts: [
@@ -57,7 +52,7 @@ let project = Project(
             name: "taskchampTests",
             destinations: .iOS,
             product: .unitTests,
-            bundleId: "io.tuist.taskchampTests",
+            bundleId: "com.slzatz.taskchampTests",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .default,
             sources: ["taskchamp/Tests/**"],
@@ -68,30 +63,19 @@ let project = Project(
             name: "taskchampWidget",
             destinations: .iOS,
             product: .appExtension,
-            bundleId: "com.mav.taskchamp.taskchampWidget",
+            bundleId: "com.slzatz.taskchamp.taskchampWidget",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(with: [
                 "CFBundleDisplayName": "$(PRODUCT_NAME)",
                 "NSExtension": [
                     "NSExtensionPointIdentifier": "com.apple.widgetkit-extension"
                 ],
-                "NSUbiquitousContainers": [
-                    "iCloud.com.mav.taskchamp":
-                        [
-                            "NSUbiquitousContainerIsDocumentScopePublic": true,
-                            "NSUbiquitousContainerName": "taskchamp",
-                            "NSUbiquitousContainerSupportedFolderLevels": "Any"
-                        ]
-                ],
                 "CFBundleShortVersionString": "3.7"
             ]),
             sources: "taskchampWidget/Sources/**",
             entitlements: .dictionary(
                 [
-                    "com.apple.developer.icloud-container-identifiers": ["iCloud.com.mav.taskchamp"],
-                    "com.apple.developer.icloud-services": ["CloudDocuments"],
-                    "com.apple.developer.ubiquity-container-identifiers": ["iCloud.com.mav.taskchamp"],
-                    "com.apple.security.application-groups": ["group.com.mav.taskchamp"]
+                    "com.apple.security.application-groups": ["group.com.slzatz.taskchamp"]
                 ]
             ),
             dependencies: [
@@ -102,10 +86,10 @@ let project = Project(
             name: "taskchampShareExtension",
             destinations: .iOS,
             product: .appExtension,
-            bundleId: "com.mav.taskchamp.taskchampShareExtension",
+            bundleId: "com.slzatz.taskchamp.taskchampShareExtension",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(with: [
-                "CFBundleDisplayName": "Taskchamp",
+                "CFBundleDisplayName": "Taskchamp Dev",
                 "NSExtension": [
                     "NSExtensionPointIdentifier": "com.apple.share-services",
                     "NSExtensionPrincipalClass": "$(PRODUCT_MODULE_NAME).ShareViewController",
@@ -121,7 +105,7 @@ let project = Project(
             ]),
             sources: "taskchampShareExtension/Sources/**",
             entitlements: .dictionary([
-                "com.apple.security.application-groups": ["group.com.mav.taskchamp"]
+                "com.apple.security.application-groups": ["group.com.slzatz.taskchamp"]
             ]),
             dependencies: [
                 .target(name: "taskchampShared")
@@ -131,7 +115,7 @@ let project = Project(
             name: "taskchampShared",
             destinations: .iOS,
             product: .staticFramework,
-            bundleId: "com.mav.taskchamp.taskchampShared",
+            bundleId: "com.slzatz.taskchamp.taskchampShared",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .default,
             sources: "taskchampShared/Sources/**",

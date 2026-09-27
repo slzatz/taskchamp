@@ -38,7 +38,7 @@ public enum TCUserDefaults: String {
 }
 
 public class UserDefaultsManager {
-    public static let suiteName = "group.com.mav.taskchamp"
+    public static let suiteName = "group.com.slzatz.taskchamp"
     public static let standard = UserDefaultsManager(UserDefaults.standard)
     public static let shared = UserDefaultsManager(UserDefaults(suiteName: suiteName) ?? .standard)
 

@@ -27,7 +27,7 @@ class ShareViewController: UIViewController {
             },
             onCancel: { [weak self] in
                 self?.extensionContext?.cancelRequest(
-                    withError: NSError(domain: "com.mav.taskchamp.share", code: 0)
+                    withError: NSError(domain: "com.slzatz.taskchamp.share", code: 0)
                 )
             }
         )

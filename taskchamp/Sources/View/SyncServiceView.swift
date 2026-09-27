@@ -6,8 +6,9 @@ public struct SyncServiceView: View {
     @Binding var selectedSyncType: TaskchampionService.SyncType?
     @State private var pathStore = PathStore()
 
+    /// iCloud Sync (.local) is hidden: this build has no iCloud entitlement.
     var allValidCases: [TaskchampionService.SyncType] {
-        return TaskchampionService.SyncType.allCases
+        return TaskchampionService.SyncType.allCases.filter { $0 != .local }
     }
 
     public var body: some View {
