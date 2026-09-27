@@ -1,0 +1,5 @@
+generated/
+*.a
+target/
+taskchampion-swift/Derived/
+taskchampion-swift/Taskchampion.xcodeproj/

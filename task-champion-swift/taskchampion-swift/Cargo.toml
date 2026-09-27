@@ -1,0 +1,20 @@
+[package]
+name = "taskchampion-swift"
+version = "0.1.0"
+edition = "2021"
+publish = false
+rust-version = "1.88.0"  # MSRV
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+swift-bridge = "0.1"
+taskchampion = {version = "=3.1.0", features = ["tls-webpki-roots", "storage-sqlite"]}
+tokio = { version = "1", features = ["rt", "rt-multi-thread"] }
+async-trait = "0.1"
+
+[features]
+
+[build-dependencies]
+swift-bridge-build = "0.1"

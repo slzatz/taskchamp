@@ -16,8 +16,6 @@ Tuist/.build
 *.xcodeproj
 *.xcworkspace
 
-### Cargo
-task-champion-swift/
 
 tmp/
 .DS_Store

@@ -26,8 +26,6 @@ format:
 	swiftformat taskchampWidget/Sources
 	swiftformat taskchampShared/Sources
 	swiftformat taskchampShareExtension/Sources
-clone_taskchampion:
-	./scripts/clone_taskchampion_swift.sh
 build_taskchampion:
 	./scripts/build_taskchampion_swift.sh
 up:

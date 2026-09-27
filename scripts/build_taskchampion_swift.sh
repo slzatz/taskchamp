@@ -11,14 +11,11 @@ TASKCHAMPION_SWIFT_DIR="$SCRIPT_DIR/../task-champion-swift/taskchampion-swift"
 FRAMEWORK_DIR="$TASKCHAMPION_SWIFT_DIR/taskchampion-swift/RustXcframework.xcframework"
 BASE_SOURCES_DIR="$TASKCHAMPION_SWIFT_DIR/taskchampion-swift/Sources/Taskchampion"
 
-# Clone the bridge if missing. Never pull: local edits (e.g. the taskchampion
-# version pin in Cargo.toml) must not be overwritten by upstream changes.
+# The Rust bridge is vendored in this repo at task-champion-swift/.
 ensure_repo() {
-    if [ ! -d "$SCRIPT_DIR/../task-champion-swift" ]; then
-        echo "task-champion-swift not present, cloning..."
-        "$SCRIPT_DIR/clone_taskchampion_swift.sh"
-    else
-        echo "task-champion-swift present (not pulling)."
+    if [ ! -d "$TASKCHAMPION_SWIFT_DIR" ]; then
+        echo "error: $TASKCHAMPION_SWIFT_DIR not found (vendored bridge missing)" >&2
+        exit 1
     fi
 }
 

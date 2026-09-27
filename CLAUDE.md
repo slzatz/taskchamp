@@ -11,7 +11,7 @@ Taskchamp is a native iOS (17+) SwiftUI client for [Taskwarrior](https://taskwar
 Prereqs: `brew install swiftlint swiftformat mise`, Rust via rustup, then `mise install` (pins Tuist 4.84.2 from `.mise.toml`). All Tuist commands go through `mise exec -- tuist ...`; the `makefile` wraps them.
 
 ```sh
-make up          # clone/pull + cargo-build task-champion-swift, tuist install, tuist generate (opens Xcode)
+make up          # cargo-build the vendored Rust bridge, tuist install, tuist generate (opens Xcode)
 make generate    # regenerate the Xcode project after editing Project.swift or Tuist/Package.swift
 make build       # tuist build
 make lint        # swiftlint over taskchamp/, taskchampWidget/, taskchampShared/ Sources
@@ -42,7 +42,7 @@ Notes:
 
 ### The Rust dependency
 
-`Taskchampion` is a local Swift package at `task-champion-swift/taskchampion-swift/taskchampion-swift/` (a gitignored checkout inside the repo root, cloned over HTTPS from `marriagav/task-champion-swift` by `make clone_taskchampion`). It carries local, uncommitted edits: `taskchampion` is pinned to `=3.1.0` in its `Cargo.toml` to match the Taskwarrior 3.5 used alongside this app. The build script clones it only if missing and never pulls, so those edits survive rebuilds. `scripts/build_taskchampion_swift.sh` cargo-builds it for `aarch64-apple-ios` (release) and `aarch64-apple-ios-sim` (debug), then copies the static libs, headers, and swift-bridge generated Swift into `RustXcframework.xcframework`. `Project.swift` sets `SWIFT_OBJC_INTEROP_MODE=objcxx` for this bridge. Anything the Swift side needs from taskchampion that isn't already exposed (e.g. a new `Replica` method) has to be added in that Rust repo, not here.
+`Taskchampion` is a local Swift package at `task-champion-swift/taskchampion-swift/taskchampion-swift/`. The whole bridge is vendored into this repo (originally `marriagav/task-champion-swift` at commit 91af945, no history kept); the Rust crate is `task-champion-swift/taskchampion-swift/` with the bridge definitions in `src/lib.rs`. `taskchampion` is pinned to `=3.1.0` in its `Cargo.toml` to match the Taskwarrior 3.5 used alongside this app. Build outputs (`target/`, `*.a`, `generated/`) are gitignored, so a fresh clone must run `make build_taskchampion` (or `make up`) before Xcode can link. `scripts/build_taskchampion_swift.sh` cargo-builds it for `aarch64-apple-ios` (release) and `aarch64-apple-ios-sim` (debug), then copies the static libs, headers, and swift-bridge generated Swift into `RustXcframework.xcframework`. `Project.swift` sets `SWIFT_OBJC_INTEROP_MODE=objcxx` for this bridge. Anything the Swift side needs from taskchampion that isn't already exposed (e.g. a new `Replica` method) is added in `src/lib.rs`, then `make build_taskchampion` regenerates the Swift bindings; commit the regenerated headers and `Sources/Taskchampion/*.swift` together with the Rust change.
 
 ## Repo status
 
