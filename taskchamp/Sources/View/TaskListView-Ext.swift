@@ -46,6 +46,54 @@ extension TaskListView {
         .foregroundStyle(.tint)
     }
 
+    /// The header title doubles as a quick filter switcher listing every saved filter.
+    var filterSwitcherMenu: some View {
+        Menu {
+            Button {
+                selectFilter(.defaultFilter)
+            } label: {
+                filterSwitcherLabel(TCFilter.defaultFilter.compactTitle, isSelected: selectedFilter.isDefaultFilter)
+            }
+            if !allFilters.isEmpty {
+                Section("Saved filters") {
+                    ForEach(allFilters) { filter in
+                        Button {
+                            selectFilter(filter)
+                        } label: {
+                            filterSwitcherLabel(filter.compactTitle, isSelected: selectedFilter.id == filter.id)
+                        }
+                    }
+                }
+            }
+            Divider()
+            Button {
+                isShowingFilterView = true
+            } label: {
+                Label("Manage Filters", systemImage: "line.3.horizontal.decrease.circle")
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(selectedFilter.compactTitle)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Image(systemName: "chevron.down")
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+            }
+            .foregroundStyle(.primary)
+        }
+    }
+
+    @ViewBuilder
+    private func filterSwitcherLabel(_ title: String, isSelected: Bool) -> some View {
+        if isSelected {
+            Label(title, systemImage: SFSymbols.checkmark.rawValue)
+        } else {
+            Text(title)
+        }
+    }
+
     func selectFilter(_ filter: TCFilter) {
         withAnimation {
             selectedFilter = filter

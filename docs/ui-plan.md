@@ -105,3 +105,9 @@ Implemented with the user's choices: tag badges shown (user tags only, synthetic
   - the rows next to vimango
 - **Remember the simulator writes to real task data:** use throwaway test tasks.
 - **Phone:** the user installs with Cmd-R on their iPhone and confirms. Commit each item to `dev` after it's verified. The user pushes.
+
+# Round 2 — faster filter switching (2026-09-27)
+
+1. **Header title is a filter dropdown — implemented, awaiting on-device check.** Outside edit mode, the principal header's title is a `Menu` (`filterSwitcherMenu` in `TaskListView-Ext.swift`) showing the compact title plus a chevron. The menu lists "My tasks", then every saved filter (favorites first, in `order`), each with a checkmark when selected, then "Manage Filters" to open `AddFilterView`. In edit mode, the header is still plain text.
+2. **Save button on the filter screen — implemented, awaiting on-device check.** `AddFilterView`'s command-line row has an inline "Save" button (`addFilter()`, the same action as Return), disabled while the field is empty.
+3. Note: the Projects section on the filter screen came from upstream commit fd50b68 (2026-06-13, merged to upstream dev via PR #131). Upstream's release branch stops at 2026-05-23, so the App Store build doesn't have it.

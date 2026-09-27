@@ -76,10 +76,14 @@ public struct TaskListView: View {
     private var headerView: some View {
         HStack(spacing: 6) {
             DevBadge()
-            Text(headerTitle)
-                .font(.headline)
-                .lineLimit(1)
-                .truncationMode(.tail)
+            if isEditModeActive {
+                Text(headerTitle)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            } else {
+                filterSwitcherMenu
+            }
             if globalState.isSyncingTasks {
                 ProgressView()
                     .controlSize(.small)
