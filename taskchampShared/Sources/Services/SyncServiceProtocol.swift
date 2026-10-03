@@ -3,18 +3,20 @@ import Taskchampion
 
 // MARK: - SyncServiceProtocol
 
-public protocol SyncServiceProtocol {
+public protocol SyncServiceProtocol: Sendable {
     static var syncServiceType: TaskchampionService.SyncType { get }
     static var settingName: String { get }
     static var errorTitle: String { get }
     static var errorMessage: String { get }
-    static func sync(replica: Replica) async throws -> Bool
+    /// Syncs `replica` with the backend, blocking until done. Called by `TaskchampionService`
+    /// on its serial sync queue with the dedicated sync replica; never call it on the main thread.
+    static func sync(replica: Replica) throws -> Bool
     static func isAvailable() -> Bool
 }
 
 // MARK: - NoSyncService
 
-public class NoSyncService: SyncServiceProtocol {
+public final class NoSyncService: SyncServiceProtocol {
     public static let syncServiceType: TaskchampionService.SyncType = .none
     public static let settingName = "No Sync Service"
     public static let errorTitle = "Unexpected Error"
@@ -26,15 +28,14 @@ public class NoSyncService: SyncServiceProtocol {
         return true
     }
 
-    @MainActor
-    public static func sync(replica: Replica) async throws -> Bool {
+    public static func sync(replica: Replica) throws -> Bool {
         return replica.sync_no_server()
     }
 }
 
 // MARK: - ICloudSyncService
 
-public class ICloudSyncService: SyncServiceProtocol {
+public final class ICloudSyncService: SyncServiceProtocol {
     public static let syncServiceType: TaskchampionService.SyncType = .local
     public static let settingName = "iCloud Sync"
     public static let errorTitle = "iCloud Required"
@@ -47,23 +48,17 @@ public class ICloudSyncService: SyncServiceProtocol {
         return FileService.shared.isICloudAvailable()
     }
 
-    @MainActor
-    public static func sync(replica: Replica) async throws -> Bool {
+    public static func sync(replica: Replica) throws -> Bool {
         do {
             let icloudPath = try FileService.shared.getDestinationPathForICloudServer()
-            return await withCheckedContinuation { continuation in
-                DispatchQueue.global(qos: .userInitiated).async {
-                    let synced = replica.sync_local_server(icloudPath)
-                    continuation.resume(returning: synced)
-                }
-            }
+            return replica.sync_local_server(icloudPath)
         } catch {
             throw TCError.genericError("Failed to sync with iCloud: \(error.localizedDescription)")
         }
     }
 }
 
-public class RemoteSyncService: SyncServiceProtocol {
+public final class RemoteSyncService: SyncServiceProtocol {
     public static let syncServiceType: TaskchampionService.SyncType = .remote
     public static let settingName = "Taskchampion Sync Server"
     public static let errorTitle = "There was an error"
@@ -90,8 +85,7 @@ public class RemoteSyncService: SyncServiceProtocol {
             getRemoteEncryptionSecret() != nil
     }
 
-    @MainActor
-    public static func sync(replica: Replica) async throws -> Bool {
+    public static func sync(replica: Replica) throws -> Bool {
         // swiftlint:disable all
         guard let remoteServerUrl = getRemoteServerUrl(),
               let remoteClientId = getRemoteClientId(),
@@ -101,20 +95,15 @@ public class RemoteSyncService: SyncServiceProtocol {
             throw TCError.genericError("Remote server configuration is incomplete")
         }
 
-        return await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                let synced = replica.sync_remote_server(
-                    remoteServerUrl.intoRustString(),
-                    remoteClientId.intoRustString(),
-                    remoteEncryptionSecret.intoRustString()
-                )
-                continuation.resume(returning: synced)
-            }
-        }
+        return replica.sync_remote_server(
+            remoteServerUrl.intoRustString(),
+            remoteClientId.intoRustString(),
+            remoteEncryptionSecret.intoRustString()
+        )
     }
 }
 
-public class GcpSyncService: SyncServiceProtocol {
+public final class GcpSyncService: SyncServiceProtocol {
     public static let syncServiceType: TaskchampionService.SyncType = .gcp
     public static let settingName = "Google Cloud Platform"
     public static let errorTitle = "There was an error"
@@ -140,8 +129,7 @@ public class GcpSyncService: SyncServiceProtocol {
             getGcpEncryptionSecret() != nil
     }
 
-    @MainActor
-    public static func sync(replica: Replica) async throws -> Bool {
+    public static func sync(replica: Replica) throws -> Bool {
         // swiftlint:disable all
         guard let bucket = getGcpBucket(),
               let encryptionSecret = getGcpEncryptionSecret() else
@@ -150,20 +138,15 @@ public class GcpSyncService: SyncServiceProtocol {
             throw TCError.genericError("GCP configuration is incomplete")
         }
 
-        return await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                let synced = replica.sync_gcp(
-                    bucket.intoRustString(),
-                    getGcpCredentialPath()?.intoRustString(),
-                    encryptionSecret.intoRustString()
-                )
-                continuation.resume(returning: synced)
-            }
-        }
+        return replica.sync_gcp(
+            bucket.intoRustString(),
+            getGcpCredentialPath()?.intoRustString(),
+            encryptionSecret.intoRustString()
+        )
     }
 }
 
-public class AwsSyncService: SyncServiceProtocol {
+public final class AwsSyncService: SyncServiceProtocol {
     public static let syncServiceType: TaskchampionService.SyncType = .aws
     public static let settingName = "S3"
     public static let errorTitle = "There was an error"
@@ -207,8 +190,7 @@ public class AwsSyncService: SyncServiceProtocol {
             getAwsEncryptionSecret() != nil
     }
 
-    @MainActor
-    public static func sync(replica: Replica) async throws -> Bool {
+    public static func sync(replica: Replica) throws -> Bool {
         // swiftlint:disable all
         guard let bucket = getAwsBucket(),
               let accessKeyId = getAwsAccessKeyId(),
@@ -219,20 +201,15 @@ public class AwsSyncService: SyncServiceProtocol {
             throw TCError.genericError("S3 configuration is incomplete")
         }
 
-        return await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                let synced = replica.sync_aws(
-                    nonEmptyString(getAwsRegion())?.intoRustString(),
-                    bucket.intoRustString(),
-                    nonEmptyString(getAwsEndpointUrl())?.intoRustString(),
-                    getAwsForcePathStyle(),
-                    accessKeyId.intoRustString(),
-                    secretAccessKey.intoRustString(),
-                    encryptionSecret.intoRustString()
-                )
-                continuation.resume(returning: synced)
-            }
-        }
+        return replica.sync_aws(
+            nonEmptyString(getAwsRegion())?.intoRustString(),
+            bucket.intoRustString(),
+            nonEmptyString(getAwsEndpointUrl())?.intoRustString(),
+            getAwsForcePathStyle(),
+            accessKeyId.intoRustString(),
+            secretAccessKey.intoRustString(),
+            encryptionSecret.intoRustString()
+        )
     }
 
     private static func nonEmptyString(_ value: String?) -> String? {

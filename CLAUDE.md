@@ -64,10 +64,11 @@ All three executables share the app group `group.com.slzatz.taskchamp`, which is
 
 ### Data flow: one Replica, wrapped by one singleton
 
-`TaskchampionService.shared` (`taskchampShared/Sources/Services/TaskchampionService.swift`) owns the single `Replica` (Rust object). Every entry point (app `ContentView.task`, widget `Provider.getTasks`, each `AppIntent.perform`) must call `setDbUrl(path:)` first; it is idempotent for the same path.
+`TaskchampionService.shared` (`taskchampShared/Sources/Services/TaskchampionService.swift`) owns the main `Replica` (Rust object), which is only used on the main actor. Every entry point (app `ContentView.task`, widget `Provider.getTasks`, each `AppIntent.perform`) must call `setDbUrl(path:)` first; it is idempotent for the same path.
 
 - Reads (`getTasks`, `getPendingTasks`, `getTask`, `getAllProjects`) are `@MainActor` because Rust `TaskRef` handles are not Sendable. `TCTask(from: TaskRef)` copies everything into a plain Swift struct immediately.
 - Writes (`createTask`, `updateTask`, `startTask`, `stopTask`, status toggles) call `replica.sync_no_server()` right after mutating to rebuild the working set, then kick off a detached `sync()` unless `skipSync: true`. `sync()` cancels any in-flight sync task, sets `needToSync` on failure, and reloads widget timelines.
+- Syncs never touch the main `Replica`. The Rust `Replica` is not thread-safe, so `SyncReplicaStore` (`taskchampShared/Sources/Services/SyncReplicaStore.swift`) opens a second `Replica` on the same database and uses it only on one serial queue, which also keeps syncs from overlapping. The two SQLite connections coordinate through WAL mode, like the app, widget, and desktop Taskwarrior do. A main-actor write made during a network sync waits on SQLite's busy timeout (about 5 s) for the sync's write transaction to finish. Never pass the main `Replica` to a background queue.
 - Rust strings go in via `.intoRustString()`; tags via `RustVec<Tag>`; the Obsidian note is passed as a `RustVec<Annotation>`.
 
 ### Where the database lives
@@ -80,7 +81,7 @@ Switching sync type therefore switches which sqlite file is opened.
 
 ### Sync backends
 
-`SyncServiceProtocol` (`taskchampShared/Sources/Services/SyncServiceProtocol.swift`) is implemented by static-only classes `NoSyncService`, `ICloudSyncService`, `RemoteSyncService`, `GcpSyncService`, `AwsSyncService`. Each reads its config from `UserDefaultsManager.shared`, reports `isAvailable()`, and calls the matching `replica.sync_*` on a background queue. `TaskchampionService.SyncType` + `getSyncServiceFromType` is the registry. Adding a backend means: a `SyncType` case, a service class, new `TCUserDefaults` keys, a settings view under `taskchamp/Sources/View/SyncService/`, and a README section.
+`SyncServiceProtocol` (`taskchampShared/Sources/Services/SyncServiceProtocol.swift`) is implemented by static-only classes `NoSyncService`, `ICloudSyncService`, `RemoteSyncService`, `GcpSyncService`, `AwsSyncService`. Each reads its config from `UserDefaultsManager.shared`, reports `isAvailable()`, and implements a blocking `sync(replica:)` that calls the matching `replica.sync_*`. `TaskchampionService.sync` runs it on the sync queue with the sync replica. Services are `final` and the protocol is `Sendable`, so keep them stateless. `TaskchampionService.SyncType` + `getSyncServiceFromType` is the registry. Adding a backend means: a `SyncType` case, a service class, new `TCUserDefaults` keys, a settings view under `taskchamp/Sources/View/SyncService/`, and a README section.
 
 ### Persistence besides the replica
 

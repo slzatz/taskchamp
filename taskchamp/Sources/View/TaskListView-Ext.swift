@@ -210,11 +210,15 @@ extension TaskListView {
             if success {
                 print("Notification Authorization granted")
                 Task {
-                    let pending = try TaskchampionService.shared.getTasks(
-                        sortType: sortType,
-                        filter: .defaultFilter
-                    )
-                    await NotificationService.shared.createReminderForTasks(tasks: pending)
+                    do {
+                        let pending = try TaskchampionService.shared.getTasks(
+                            sortType: sortType,
+                            filter: .defaultFilter
+                        )
+                        await NotificationService.shared.createReminderForTasks(tasks: pending)
+                    } catch {
+                        print("Error scheduling task reminders: \(error)")
+                    }
                 }
             } else if let error = error {
                 print(error.localizedDescription)

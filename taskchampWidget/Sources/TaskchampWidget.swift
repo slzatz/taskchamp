@@ -47,7 +47,11 @@ struct Provider: AppIntentTimelineProvider {
                     path: localReplicaPath
                 )
             Task {
-                try await TaskchampionService.shared.sync()
+                do {
+                    try await TaskchampionService.shared.sync()
+                } catch {
+                    print("Error syncing from widget: \(error)")
+                }
             }
             return try TaskchampionService.shared.getTasks(filter: filter)
         } catch {

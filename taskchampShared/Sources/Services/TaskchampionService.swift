@@ -9,6 +9,7 @@ public class TaskchampionService {
     private var path: String?
     public var needToSync = false
     private var currentTask: _Concurrency.Task<Void, Error>?
+    private let syncReplicaStore = SyncReplicaStore()
 
     public enum SyncType: Codable, CaseIterable {
         case remote
@@ -50,6 +51,7 @@ public class TaskchampionService {
         }
         do {
             let newPath = path + "/taskchampion.sqlite3"
+            syncReplicaStore.reset()
             try FileManager.default.removeItem(atPath: newPath)
             replica = nil
             self.path = nil
@@ -61,14 +63,17 @@ public class TaskchampionService {
     public func sync(syncType: SyncType, onSync: @escaping () -> Void = {}) async throws {
         currentTask?.cancel()
         currentTask = .init {
-            guard let replica else {
+            guard let path else {
                 throw TCError.genericError("Database not set")
             }
 
             let syncService = getSyncServiceFromType(syncType)
 
             do {
-                let synced = try await syncService.sync(replica: replica)
+                // Sync on the dedicated sync replica, never the main-actor one (see SyncReplicaStore).
+                let synced = try await syncReplicaStore.run(path: path) { replica in
+                    try syncService.sync(replica: replica)
+                }
 
                 if synced {
                     needToSync = false
@@ -88,33 +93,8 @@ public class TaskchampionService {
     }
 
     public func sync(onSync: @escaping () -> Void = {}) async throws {
-        currentTask?.cancel()
-        currentTask = .init {
-            guard let replica else {
-                throw TCError.genericError("Database not set")
-            }
-
-            let syncType: SyncType = FileService.shared.getSelectedSyncType() ?? .none
-            let syncService = getSyncServiceFromType(syncType)
-
-            do {
-                let synced = try await syncService.sync(replica: replica)
-
-                if synced {
-                    needToSync = false
-                } else {
-                    needToSync = true
-                }
-                WidgetCenter.shared.reloadAllTimelines()
-                onSync()
-            } catch is CancellationError {
-                // do nothing: task was canceled before finishing
-            } catch {
-                needToSync = true
-                onSync()
-            }
-        }
-        try await currentTask?.value
+        let syncType: SyncType = FileService.shared.getSelectedSyncType() ?? .none
+        try await sync(syncType: syncType, onSync: onSync)
     }
 
     @MainActor
