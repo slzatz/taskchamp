@@ -86,7 +86,7 @@ Implemented with the user's choices: tag badges shown (user tags only, synthetic
 
 - **Line 1:** the description in `.headline`. Keep the `taskCellLineLimit` setting, but consider defaulting it to 1 to match vimango. Add caption indicators for active (`play.fill`, accent) and recurring (`repeat`, secondary).
 - **Line 2:** a project badge (blue), a priority badge colored by level (red for H, orange for M, green for L), and optionally tag badges in green, which the current row doesn't show. Then `Spacer()`, then the due date in `.caption2`. Make an overdue date red. Omit line 2 entirely when a task has no project, priority, tags, or due date.
-- **Completed and deleted tasks:** strikethrough plus `.opacity(0.45)`, replacing the current secondary and red coloring. Deleted keeps the red strikethrough color.
+- **Completed and deleted tasks:** `.opacity(0.45)`, replacing the current secondary and red coloring. Only deleted rows get a strikethrough, in red. Completed rows are grayed only, because a strikethrough made them hard to read (changed 2026-10-03 at the user's request).
 - **Spacing:** use vimango's `spacing: 4` and `padding(.vertical, 4)`, and remove the current per-line `.padding(.vertical, 3)`.
 - **List:** remove `.listRowBackground(Color.clear)` and `.listStyle(.inset)` from `TaskListView` only if the result looks closer to vimango. Compare screenshots of both.
 - **Keep intact:** swipe actions, edit-mode multi-select, and the search filter.

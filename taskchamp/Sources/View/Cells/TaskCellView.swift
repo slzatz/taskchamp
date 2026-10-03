@@ -26,7 +26,7 @@ public struct TaskCellView: View {
                     .font(.headline)
                     .lineLimit(max(1, min(lineLimit, 5)))
                     .truncationMode(.tail)
-                    .strikethrough(task.isCompleted || task.isDeleted, color: task.isDeleted ? .red : nil)
+                    .strikethrough(task.isDeleted, color: .red)
                 if task.isActive {
                     Image(systemName: SFSymbols.playFill.rawValue)
                         .font(.caption)
