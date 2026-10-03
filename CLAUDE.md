@@ -19,12 +19,12 @@ make format      # swiftformat over the same three source roots
 make edit        # tuist edit (edit Project.swift with autocomplete)
 ```
 
-Tests (target `taskchampTests`, sources in `taskchamp/Tests/`, currently a single placeholder test):
+Tests (target `taskchampTests`, sources in `taskchamp/Tests/`; currently unit tests for `FilterParser`, `FilterDate` and `TCFilter.compactTitle`):
 
 ```sh
 make test
 # single test
-mise exec -- tuist test taskchamp --test-targets taskchampTests/TaskchampTests/test_twoPlusTwo_isFour
+mise exec -- tuist test taskchamp --test-targets taskchampTests/TaskchampTests/test_endAfter_matchesRecentlyCompleted
 ```
 
 Simulator build without opening Xcode (verified with Xcode 27; pick any id from `xcrun simctl list devices available`):
@@ -89,7 +89,9 @@ Switching sync type therefore switches which sqlite file is opened.
 
 ### Filtering and tags
 
-- `TCFilter.fullDescription` is a Taskwarrior-style filter string (`+tag -tag project:x prio:H status:pending recur`, with `or` and parentheses). `FilterParser` in `FilterExpression.swift` tokenizes it into a `FilterExpression` tree; `TCTask.taskFactory(from:withFilter:)` applies it. The default "My tasks" filter short-circuits to `replica.pending_tasks()`.
+- `TCFilter.fullDescription` is a Taskwarrior-style filter string (`+tag -tag project:x prio:H status:pending recur end.after:now-1wk`, with `or` and parentheses). `FilterParser` in `FilterExpression.swift` tokenizes it into a `FilterExpression` tree; `TCTask.taskFactory(from:withFilter:)` applies it. The default "My tasks" filter short-circuits to `replica.pending_tasks()`.
+- Words the tokenizer doesn't recognize produce no token. `FilterParser.unrecognizedTerms(in:)` reports them, and `AddFilterView` refuses to save a filter that has any. Adding a filter term means: a `FilterToken` case, a branch in `FilterParser.token(for:)`, a `FilterExpression` case (`matches`, `compactDescription`, `parseAtom`), and a case in `NLPService.setLegacyProperties` (that switch is exhaustive).
+- Date comparisons (`<attr>.after|before|above|below:<value>`) live in `FilterDate.swift`: `FilterDateAttribute` maps attribute names to `TCTask` date fields, and `FilterDate` parses Taskwarrior date values (`now`, `today`, `sow`, ISO dates, `now-1wk`). Relative values are resolved inside `matches(_:now:)`, so saved filters keep rolling. Supporting a new date attribute requires the value on `TCTask`, which may need a new `get_*` in the Rust bridge (`get_end`/`get_entry` were added for this).
 - Recurring template tasks (`status == recurring`) are hidden unless the filter explicitly asks for `status:recurring`.
 - `TCSyntheticTag` (OVERDUE, DUE, TODAY, WEEK, LATEST, …) mirrors Taskwarrior's virtual tags and is computed in Swift inside `TCTask.init(from:)`; these are all-caps ASCII and are hidden from tag suggestions.
 - `NLPService` provides autocomplete for `prio:`/`project:`/`status:`/`+`/`-` surfaces and uses SoulverCore for natural-language due dates in the create-task field.

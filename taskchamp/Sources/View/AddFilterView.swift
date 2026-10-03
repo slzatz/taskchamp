@@ -229,6 +229,9 @@ extension AddFilterView {
                 isShowingAlert = true
                 return
             }
+            if showUnsupportedTermsAlert(for: nlpInput) {
+                return
+            }
             let nlpFilter = NLPService.shared.createFilter(from: nlpInput)
             if !nlpFilter.isValidFilter {
                 alertTitle = "Invalid filter"
@@ -248,6 +251,16 @@ extension AddFilterView {
         }
     }
 
+    /// Alerts when the query contains terms the filter parser would silently ignore.
+    func showUnsupportedTermsAlert(for query: String) -> Bool {
+        let unsupported = FilterParser.unrecognizedTerms(in: query)
+        guard !unsupported.isEmpty else { return false }
+        alertTitle = "Unsupported filter terms"
+        alertMessage = "Taskchamp doesn't understand: \(unsupported.joined(separator: " "))"
+        isShowingAlert = true
+        return true
+    }
+
     func saveEditingFilter() {
         guard let filter = editingFilter else { return }
         let trimmedQuery = editQuery.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -255,6 +268,9 @@ extension AddFilterView {
             alertTitle = "Empty query"
             alertMessage = "Please enter a valid filter query"
             isShowingAlert = true
+            return
+        }
+        if showUnsupportedTermsAlert(for: trimmedQuery) {
             return
         }
         if FilterParser.parse(trimmedQuery) == nil {

@@ -12,13 +12,14 @@ public indirect enum FilterExpression {
     case priority(TCTask.Priority)
     case status(TCTask.Status)
     case recur
+    case date(FilterDateAttribute, FilterDateComparison, FilterDate)
 
-    public func matches(_ task: TCTask) -> Bool {
+    public func matches(_ task: TCTask, now: Date = Date()) -> Bool {
         switch self {
         case .and(let expressions):
-            return expressions.allSatisfy { $0.matches(task) }
+            return expressions.allSatisfy { $0.matches(task, now: now) }
         case .or(let expressions):
-            return expressions.contains { $0.matches(task) }
+            return expressions.contains { $0.matches(task, now: now) }
         case .tag(let name):
             return task.tags?.contains { $0.name == name } ?? false
         case .notTag(let name):
@@ -32,6 +33,11 @@ public indirect enum FilterExpression {
             return task.status == status
         case .recur:
             return task.recur != nil
+        case .date(let attribute, let comparison, let value):
+            // As in Taskwarrior, a task without the attribute never matches a date comparison.
+            guard let taskDate = attribute.value(of: task) else { return false }
+            let date = value.resolve(now: now)
+            return comparison == .after ? taskDate > date : taskDate < date
         }
     }
 
@@ -59,6 +65,8 @@ public indirect enum FilterExpression {
             return status.rawValue
         case .recur:
             return "recur"
+        case .date(let attribute, let comparison, let value):
+            return "\(attribute.rawValue)\(comparison == .after ? ">" : "<")\(value.text)"
         }
     }
 
@@ -87,6 +95,7 @@ enum FilterToken: Equatable {
     case priority(String)
     case status(String)
     case recur
+    case date(FilterDateAttribute, FilterDateComparison, FilterDate)
 }
 
 // MARK: - FilterParser
@@ -105,7 +114,19 @@ public enum FilterParser {
     // MARK: - Tokenizer
 
     static func tokenize(_ input: String) -> [FilterToken] {
-        var tokens: [FilterToken] = []
+        words(in: input).compactMap { token(for: $0) }
+    }
+
+    /// Words in `input` that the filter language doesn't understand and would otherwise be
+    /// silently ignored (e.g. `due:today` or a misspelled keyword).
+    public static func unrecognizedTerms(in input: String) -> [String] {
+        words(in: input).filter { token(for: $0) == nil }
+    }
+
+    /// Splits `input` into parentheses and whitespace-separated words. A leading `task`
+    /// (from a pasted Taskwarrior command line) is dropped.
+    private static func words(in input: String) -> [String] {
+        var words: [String] = []
         let chars = Array(input)
         var i = 0
 
@@ -115,14 +136,8 @@ public enum FilterParser {
                 continue
             }
 
-            if chars[i] == "(" {
-                tokens.append(.leftParen)
-                i += 1
-                continue
-            }
-
-            if chars[i] == ")" {
-                tokens.append(.rightParen)
+            if chars[i] == "(" || chars[i] == ")" {
+                words.append(String(chars[i]))
                 i += 1
                 continue
             }
@@ -132,40 +147,59 @@ public enum FilterParser {
                 word.append(chars[i])
                 i += 1
             }
-
-            guard !word.isEmpty else { continue }
-
-            switch word {
-            case _ where word.lowercased() == "or":
-                tokens.append(.orKeyword)
-            case _ where word.lowercased() == "and":
-                tokens.append(.andKeyword)
-            case _ where word.hasPrefix("project:"):
-                tokens.append(.project(String(word.dropFirst("project:".count))))
-            case _ where word.hasPrefix("prio:"):
-                tokens.append(.priority(String(word.dropFirst("prio:".count))))
-            case _ where word.hasPrefix("priority:"):
-                tokens.append(.priority(String(word.dropFirst("priority:".count))))
-            case _ where word.hasPrefix("status:"):
-                tokens.append(.status(String(word.dropFirst("status:".count))))
-            case _ where word.lowercased() == "recur":
-                tokens.append(.recur)
-            case _ where word.hasPrefix("+"):
-                let value = String(word.dropFirst())
-                if !value.isEmpty {
-                    tokens.append(.tag(value))
-                }
-            case _ where word.hasPrefix("-"):
-                let value = String(word.dropFirst())
-                if !value.isEmpty {
-                    tokens.append(.notTag(value))
-                }
-            default:
-                break
-            }
+            words.append(word)
         }
 
-        return tokens
+        if words.first?.lowercased() == "task" {
+            words.removeFirst()
+        }
+        return words
+    }
+
+    private static func token(for word: String) -> FilterToken? {
+        switch word {
+        case "(":
+            return .leftParen
+        case ")":
+            return .rightParen
+        case _ where word.lowercased() == "or":
+            return .orKeyword
+        case _ where word.lowercased() == "and":
+            return .andKeyword
+        case _ where word.hasPrefix("project:"):
+            return .project(String(word.dropFirst("project:".count)))
+        case _ where word.hasPrefix("prio:"):
+            return .priority(String(word.dropFirst("prio:".count)))
+        case _ where word.hasPrefix("priority:"):
+            return .priority(String(word.dropFirst("priority:".count)))
+        case _ where word.hasPrefix("status:"):
+            return .status(String(word.dropFirst("status:".count)))
+        case _ where word.lowercased() == "recur":
+            return .recur
+        case _ where word.hasPrefix("+"):
+            let value = String(word.dropFirst())
+            return value.isEmpty ? nil : .tag(value)
+        case _ where word.hasPrefix("-"):
+            let value = String(word.dropFirst())
+            return value.isEmpty ? nil : .notTag(value)
+        default:
+            return dateToken(for: word)
+        }
+    }
+
+    /// `<attribute>.<after|before|above|below>:<date>`, e.g. `end.after:now-1wk`.
+    private static func dateToken(for word: String) -> FilterToken? {
+        guard let colon = word.firstIndex(of: ":") else { return nil }
+        let parts = word[..<colon].split(separator: ".", omittingEmptySubsequences: false)
+        guard
+            parts.count == 2,
+            let attribute = FilterDateAttribute(rawValue: parts[0].lowercased()),
+            let comparison = FilterDateComparison(modifier: String(parts[1])),
+            let date = FilterDate(String(word[word.index(after: colon)...]))
+        else {
+            return nil
+        }
+        return .date(attribute, comparison, date)
     }
 
     // MARK: - Recursive Descent Parser
@@ -175,7 +209,7 @@ public enum FilterParser {
     //   or_expr    = and_expr ("or" and_expr)*
     //   and_expr   = primary ("and"? primary)*
     //   primary    = "(" expression ")" | atom
-    //   atom       = tag | notTag | project | priority | status | recur
+    //   atom       = tag | notTag | project | priority | status | recur | date
 
     private static func parseOrExpression(tokens: [FilterToken], index: inout Int) -> FilterExpression? {
         guard let first = parseAndExpression(tokens: tokens, index: &index) else { return nil }
@@ -246,6 +280,9 @@ public enum FilterParser {
         case .recur:
             index += 1
             return .recur
+        case .date(let attribute, let comparison, let value):
+            index += 1
+            return .date(attribute, comparison, value)
         default:
             return nil
         }

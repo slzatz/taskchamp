@@ -273,6 +273,8 @@ public class NLPService {
             filter.setTag(name, forInclusion: false)
         case .recur:
             filter.setRecur()
+        case .date:
+            break
         }
     }
 

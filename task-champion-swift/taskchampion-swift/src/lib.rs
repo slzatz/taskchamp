@@ -120,6 +120,8 @@ mod ffi {
         fn get_scheduled(&self) -> Option<String>;
         fn get_until(&self) -> Option<String>;
         fn get_modified(&self) -> Option<String>;
+        fn get_end(&self) -> Option<String>;
+        fn get_entry(&self) -> Option<String>;
     }
 
     extern "Rust" {
@@ -849,6 +851,16 @@ impl Task {
     fn get_modified(&self) -> Option<String> {
         let task_data = self.0.clone().into_task_data();
         task_data.get("modified").map(|s| s.to_string())
+    }
+
+    fn get_end(&self) -> Option<String> {
+        let task_data = self.0.clone().into_task_data();
+        task_data.get("end").map(|s| s.to_string())
+    }
+
+    fn get_entry(&self) -> Option<String> {
+        let task_data = self.0.clone().into_task_data();
+        task_data.get("entry").map(|s| s.to_string())
     }
 }
 

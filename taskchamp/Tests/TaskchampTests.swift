@@ -49,4 +49,66 @@ final class TaskchampTests: XCTestCase {
         let filter = TCFilter(fullDescription: "whatever words")
         XCTAssertEqual(filter.compactTitle, "whatever words")
     }
+
+    // MARK: - Date filters
+
+    private let now: Date = {
+        var components = DateComponents()
+        components.year = 2026
+        components.month = 10
+        components.day = 3
+        components.hour = 15
+        return Calendar.current.date(from: components) ?? Date()
+    }()
+
+    private func completedTask(endedDaysAgo days: Int?) -> TCTask {
+        var task = TCTask(uuid: UUID().uuidString, project: "work", description: "t", status: .completed)
+        task.end = days.flatMap { Calendar.current.date(byAdding: .day, value: -$0, to: now) }
+        return task
+    }
+
+    private func matches(_ filter: String, _ task: TCTask) -> Bool {
+        FilterParser.parse(filter)?.matches(task, now: now) ?? false
+    }
+
+    func test_endAfter_matchesRecentlyCompleted() {
+        let filter = "project:work status:completed end.after:now-1wk"
+        XCTAssertTrue(matches(filter, completedTask(endedDaysAgo: 2)))
+        XCTAssertFalse(matches(filter, completedTask(endedDaysAgo: 10)))
+        XCTAssertFalse(matches(filter, completedTask(endedDaysAgo: nil)))
+    }
+
+    func test_endBefore_andAliases() {
+        XCTAssertTrue(matches("end.before:today-3d", completedTask(endedDaysAgo: 5)))
+        XCTAssertFalse(matches("end.before:today-3d", completedTask(endedDaysAgo: 1)))
+        XCTAssertTrue(matches("end.below:yesterday", completedTask(endedDaysAgo: 2)))
+        XCTAssertTrue(matches("end.above:-2d", completedTask(endedDaysAgo: 1)))
+    }
+
+    func test_endAfter_isoDate() {
+        XCTAssertTrue(matches("end.after:2026-09-30", completedTask(endedDaysAgo: 2)))
+        XCTAssertFalse(matches("end.after:2026-09-30", completedTask(endedDaysAgo: 5)))
+    }
+
+    func test_filterDate_resolvesRelativeValues() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: now)
+        XCTAssertEqual(FilterDate("today")?.resolve(now: now), today)
+        XCTAssertEqual(FilterDate("now-1wk")?.resolve(now: now), calendar.date(byAdding: .day, value: -7, to: now))
+        XCTAssertEqual(FilterDate("now-2mo")?.resolve(now: now), calendar.date(byAdding: .month, value: -2, to: now))
+        XCTAssertEqual(FilterDate("now-30min")?.resolve(now: now), now.addingTimeInterval(-1800))
+        XCTAssertNil(FilterDate("now-1fortnight"))
+        XCTAssertNil(FilterDate("someday"))
+    }
+
+    func test_compactDescription_dateFilter() {
+        XCTAssertEqual(compact("status:completed end.after:now-1wk"), "completed end>now-1wk")
+    }
+
+    func test_unrecognizedTerms() {
+        XCTAssertEqual(FilterParser.unrecognizedTerms(in: "task project:work end.after:now-1wk"), [])
+        XCTAssertEqual(FilterParser.unrecognizedTerms(in: "project:work due:today end.after:bogus"), [
+            "due:today", "end.after:bogus"
+        ])
+    }
 }

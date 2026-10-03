@@ -466,6 +466,14 @@ extension TaskRef {
     public func get_modified() -> Optional<RustString> {
         { let val = __swift_bridge__$Task$get_modified(ptr); if val != nil { return RustString(ptr: val!) } else { return nil } }()
     }
+
+    public func get_end() -> Optional<RustString> {
+        { let val = __swift_bridge__$Task$get_end(ptr); if val != nil { return RustString(ptr: val!) } else { return nil } }()
+    }
+
+    public func get_entry() -> Optional<RustString> {
+        { let val = __swift_bridge__$Task$get_entry(ptr); if val != nil { return RustString(ptr: val!) } else { return nil } }()
+    }
 }
 extension Task: Vectorizable {
     public static func vecOfSelfNew() -> UnsafeMutableRawPointer {

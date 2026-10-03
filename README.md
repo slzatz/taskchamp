@@ -20,6 +20,7 @@ Use [Taskwarrior](https://taskwarrior.org/), a simple command line interface to 
   - [Setup with S3](#setup-with-s3)
   - [Setup with GCP](#setup-with-gcp)
   - [Setup with iCloud Drive](#setup-with-icloud-drive)
+- [Filters](#filters)
 - [Obsidian integration](#obsidian-integration)
   - [Interact with Obsidian notes from Taskwarrior](#interact-with-obsidian-notes-from-taskwarrior)
 
@@ -185,6 +186,29 @@ sync.local.server_dir=~/Library/Mobile Documents/iCloud~com~mav~taskchamp/Docume
 6. Run this command whenever you want to sync your tasks. You can also create a cron job to run run it every few minutes.
 
 7. Your tasks should now be synced between your computer and your phone. You can add tasks from the command line using Taskwarrior, `task sync`, and they will appear on Taskchamp.
+
+<!-- TOC --><a name="filters"></a>
+
+## Filters
+
+Saved filters use a subset of Taskwarrior's filter syntax. Terms are ANDed by default; use `or` and parentheses to group.
+
+| Term | Example |
+|---|---|
+| Project (exact match) | `project:work` |
+| Priority | `prio:H`, `priority:M`, `prio:None` |
+| Status | `status:pending`, `status:completed`, `status:deleted`, `status:recurring` |
+| Tags | `+home`, `-someday` |
+| Recurring tasks | `recur` |
+| Date comparisons | `end.after:now-1wk`, `due.before:tomorrow`, `entry.after:2026-09-01` |
+
+Date comparisons work on `end`, `entry`, `due`, `scheduled`, `until` and `modified`, with the `after`/`before` modifiers (`above`/`below` are aliases). A task without that date never matches. Date values can be:
+
+- Named: `now`, `today`/`sod`, `yesterday`, `tomorrow`, `eod`, `sow`, `som`, `soy`
+- Absolute: `2026-09-01` or `2026-09-01T14:30`
+- Relative: a named or absolute date plus an offset, e.g. `now-1wk`, `today-3d`, `som+1mo`. A bare offset such as `-2d` is relative to `now`. Units follow Taskwarrior: `s`, `min`/`m`, `h`, `d`, `wk`/`w`, `mo`, `q`, `y`.
+
+Relative dates are recalculated every time the filter runs, so `status:completed end.after:now-1wk` always shows the last seven days. A leading `task` (from a pasted command line) is ignored. Taskchamp rejects filters containing terms it doesn't understand (for example `due:today` without a modifier) rather than silently ignoring them.
 
 <!-- TOC --><a name="obsidian-integration"></a>
 

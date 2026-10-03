@@ -131,6 +131,8 @@ void* __swift_bridge__$Task$get_start(void* self);
 void* __swift_bridge__$Task$get_scheduled(void* self);
 void* __swift_bridge__$Task$get_until(void* self);
 void* __swift_bridge__$Task$get_modified(void* self);
+void* __swift_bridge__$Task$get_end(void* self);
+void* __swift_bridge__$Task$get_entry(void* self);
 void* __swift_bridge__$Annotation$get_description(void* self);
 void* __swift_bridge__$create_annotation(void* description, void* entry);
 void* __swift_bridge__$Status$get_value(void* self);

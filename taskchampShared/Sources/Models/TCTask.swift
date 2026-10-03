@@ -89,6 +89,8 @@ public struct TCTask: Codable, Hashable {
         let scheduled = rustTask.get_scheduled()?.toString()
         let until = rustTask.get_until()?.toString()
         let modified = rustTask.get_modified()?.toString()
+        let end = rustTask.get_end()?.toString()
+        let entry = rustTask.get_entry()?.toString()
 
         // Initialize
         self.uuid = uuid
@@ -110,6 +112,12 @@ public struct TCTask: Codable, Hashable {
         }
         if let modified, let timeInterval = TimeInterval(modified) {
             self.modified = Date(timeIntervalSince1970: timeInterval)
+        }
+        if let end, let timeInterval = TimeInterval(end) {
+            self.end = Date(timeIntervalSince1970: timeInterval)
+        }
+        if let entry, let timeInterval = TimeInterval(entry) {
+            self.entry = Date(timeIntervalSince1970: timeInterval)
         }
 
         // Look for obsidian note in annotations
@@ -229,6 +237,8 @@ public struct TCTask: Codable, Hashable {
     public var scheduled: Date?
     public var until: Date?
     public var modified: Date?
+    public var end: Date?
+    public var entry: Date?
 
     public var obsidianNoteAnnotation: String? {
         guard let note = obsidianNote else {
