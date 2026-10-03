@@ -58,13 +58,11 @@ public struct EditTaskView: View, UseKeyboardToolbar {
             Section {
                 ZStack(alignment: .topLeading) {
                     Text(description.isEmpty ? " " : description)
-                        .bold()
                         .padding(.vertical, 8)
                         .padding(.horizontal, 5)
                         .opacity(0)
                     TextEditor(text: $description)
                         .focused($focusedField, equals: .description)
-                        .bold()
                 }
                 .frame(minHeight: 40)
                 SelectProjectButton(project: $project) {

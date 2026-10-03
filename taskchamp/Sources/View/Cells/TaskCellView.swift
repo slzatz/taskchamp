@@ -23,7 +23,7 @@ public struct TaskCellView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(task.description)
-                    .font(.headline)
+                    .font(.system(size: 14))
                     .lineLimit(max(1, min(lineLimit, 5)))
                     .truncationMode(.tail)
                     .strikethrough(task.isDeleted, color: .red)
