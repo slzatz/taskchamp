@@ -120,7 +120,9 @@ public class FileService {
 
         let exists = FileManager.default.fileExists(atPath: destinationPath.path)
 
-        if !exists { return nil }
+        if !exists {
+            return nil
+        }
         return destinationPath.path
     }
 
@@ -135,7 +137,9 @@ public class FileService {
         }
 
         let exists = FileManager.default.fileExists(atPath: url.path)
-        if exists { return }
+        if exists {
+            return
+        }
 
         try FileManager.default.copyItem(
             atPath: legacyDestinationPath,

@@ -98,7 +98,7 @@ public struct FilterDate: Equatable {
         switch anchor {
         case .now:
             return now
-        case .startOfDay(let dayOffset):
+        case let .startOfDay(dayOffset):
             let start = calendar.startOfDay(for: now)
             return calendar.date(byAdding: .day, value: dayOffset, to: start) ?? start
         case .endOfDay:
@@ -111,7 +111,7 @@ public struct FilterDate: Equatable {
             return calendar.dateInterval(of: .month, for: now)?.start ?? now
         case .startOfYear:
             return calendar.dateInterval(of: .year, for: now)?.start ?? now
-        case .absolute(let date):
+        case let .absolute(date):
             return date
         }
     }

@@ -3,7 +3,6 @@ import SwiftUI
 import taskchampShared
 
 public struct AddTagView: View, UseKeyboardToolbar {
-
     @Environment(\.modelContext) var modelContext
     @Environment(\.dismiss) var dismiss
     @Binding var selectedTags: [TCTag]

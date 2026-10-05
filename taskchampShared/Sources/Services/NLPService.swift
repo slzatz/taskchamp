@@ -257,19 +257,19 @@ public class NLPService {
     @MainActor
     private func setLegacyProperties(on filter: TCFilter, from expression: FilterExpression) {
         switch expression {
-        case .and(let expressions), .or(let expressions):
+        case let .and(expressions), let .or(expressions):
             for expr in expressions {
                 setLegacyProperties(on: filter, from: expr)
             }
-        case .project(let name):
+        case let .project(name):
             filter.setProject(name)
-        case .priority(let prio):
+        case let .priority(prio):
             filter.setPrio(prio)
-        case .status(let status):
+        case let .status(status):
             filter.setStatus(status)
-        case .tag(let name):
+        case let .tag(name):
             filter.setTag(name, forInclusion: true)
-        case .notTag(let name):
+        case let .notTag(name):
             filter.setTag(name, forInclusion: false)
         case .recur:
             filter.setRecur()
@@ -302,25 +302,25 @@ public class NLPService {
     }
 }
 
-extension NLPService {
-    public func appendProjectsToCache(_ projects: [String]) {
+public extension NLPService {
+    func appendProjectsToCache(_ projects: [String]) {
         for project in projects where !projectsCache.contains(project) {
             projectsCache.append(project)
         }
     }
 
-    public func setProjectsCache(_ projects: [String]) {
+    func setProjectsCache(_ projects: [String]) {
         projectsCache = projects
     }
 
     @MainActor
-    public func refreshProjectsCache() {
+    func refreshProjectsCache() {
         let onlyActive: Bool = UserDefaultsManager.standard.getValue(forKey: .suggestOnlyActiveProjects) ?? true
         let projects = TaskchampionService.shared.getAllProjects(onlyActive: onlyActive)
         setProjectsCache(projects)
     }
 
-    public func projectSuggestions(matching query: String) -> [String] {
+    func projectSuggestions(matching query: String) -> [String] {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         if trimmed.isEmpty {
             return projectsCache

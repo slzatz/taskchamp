@@ -5,7 +5,6 @@ import taskchampShared
 import WidgetKit
 
 public struct AddFilterView: View, UseKeyboardToolbar {
-
     @Environment(\.modelContext) var modelContext
     @Environment(\.dismiss) var dismiss
     @Binding var selectedFilter: TCFilter

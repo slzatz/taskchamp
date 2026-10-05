@@ -14,8 +14,8 @@ Prereqs: `brew install swiftlint swiftformat mise`, Rust via rustup, then `mise 
 make up          # cargo-build the vendored Rust bridge, tuist install, tuist generate (opens Xcode)
 make generate    # regenerate the Xcode project after editing Project.swift or Tuist/Package.swift
 make build       # tuist build
-make lint        # swiftlint over taskchamp/, taskchampWidget/, taskchampShared/ Sources
-make format      # swiftformat over the same three source roots
+make lint        # swiftlint over the Sources of taskchamp, taskchampWidget, taskchampShared, taskchampShareExtension
+make format      # swiftformat over the same four source roots
 make edit        # tuist edit (edit Project.swift with autocomplete)
 ```
 

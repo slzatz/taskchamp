@@ -16,24 +16,24 @@ public indirect enum FilterExpression {
 
     public func matches(_ task: TCTask, now: Date = Date()) -> Bool {
         switch self {
-        case .and(let expressions):
+        case let .and(expressions):
             return expressions.allSatisfy { $0.matches(task, now: now) }
-        case .or(let expressions):
+        case let .or(expressions):
             return expressions.contains { $0.matches(task, now: now) }
-        case .tag(let name):
+        case let .tag(name):
             return task.tags?.contains { $0.name == name } ?? false
-        case .notTag(let name):
+        case let .notTag(name):
             return !(task.tags?.contains { $0.name == name } ?? false)
-        case .project(let name):
+        case let .project(name):
             return task.project == name
-        case .priority(let prio):
+        case let .priority(prio):
             let taskPrio = task.priority ?? .none
             return taskPrio == prio
-        case .status(let status):
+        case let .status(status):
             return task.status == status
         case .recur:
             return task.recur != nil
-        case .date(let attribute, let comparison, let value):
+        case let .date(attribute, comparison, value):
             // As in Taskwarrior, a task without the attribute never matches a date comparison.
             guard let taskDate = attribute.value(of: task) else { return false }
             let date = value.resolve(now: now)
@@ -48,33 +48,33 @@ public indirect enum FilterExpression {
 
     private func compactDescription(nestedInAnd: Bool) -> String {
         switch self {
-        case .and(let expressions):
+        case let .and(expressions):
             return expressions.map { $0.compactDescription(nestedInAnd: true) }.joined(separator: " ")
-        case .or(let expressions):
+        case let .or(expressions):
             let joined = expressions.map { $0.compactDescription(nestedInAnd: false) }.joined(separator: " | ")
             return nestedInAnd ? "(\(joined))" : joined
-        case .tag(let name):
+        case let .tag(name):
             return "+\(name)"
-        case .notTag(let name):
+        case let .notTag(name):
             return "-\(name)"
-        case .project(let name):
+        case let .project(name):
             return name
-        case .priority(let prio):
+        case let .priority(prio):
             return prio == .none ? "no prio" : prio.rawValue
-        case .status(let status):
+        case let .status(status):
             return status.rawValue
         case .recur:
             return "recur"
-        case .date(let attribute, let comparison, let value):
+        case let .date(attribute, comparison, value):
             return "\(attribute.rawValue)\(comparison == .after ? ">" : "<")\(value.text)"
         }
     }
 
     func containsStatus(_ status: TCTask.Status) -> Bool {
         switch self {
-        case .status(let taskStatus):
+        case let .status(taskStatus):
             return taskStatus == status
-        case .and(let expressions), .or(let expressions):
+        case let .and(expressions), let .or(expressions):
             return expressions.contains { $0.containsStatus(status) }
         default:
             return false
@@ -101,14 +101,11 @@ enum FilterToken: Equatable {
 // MARK: - FilterParser
 
 public enum FilterParser {
-    // MARK: - Public API
-
     public static func parse(_ input: String) -> FilterExpression? {
         let tokens = tokenize(input)
         guard !tokens.isEmpty else { return nil }
         var index = 0
-        let result = parseOrExpression(tokens: tokens, index: &index)
-        return result
+        return parseOrExpression(tokens: tokens, index: &index)
     }
 
     // MARK: - Tokenizer
@@ -143,7 +140,7 @@ public enum FilterParser {
             }
 
             var word = ""
-            while i < chars.count && !chars[i].isWhitespace && chars[i] != "(" && chars[i] != ")" {
+            while i < chars.count, !chars[i].isWhitespace, chars[i] != "(", chars[i] != ")" {
                 word.append(chars[i])
                 i += 1
             }
@@ -203,6 +200,7 @@ public enum FilterParser {
     }
 
     // MARK: - Recursive Descent Parser
+
     //
     // Grammar:
     //   expression = or_expr
@@ -245,7 +243,7 @@ public enum FilterParser {
         if tokens[index] == .leftParen {
             index += 1
             guard let expr = parseOrExpression(tokens: tokens, index: &index) else { return nil }
-            if index < tokens.count && tokens[index] == .rightParen {
+            if index < tokens.count, tokens[index] == .rightParen {
                 index += 1
             }
             return expr
@@ -260,27 +258,27 @@ public enum FilterParser {
         let token = tokens[index]
 
         switch token {
-        case .tag(let name):
+        case let .tag(name):
             index += 1
             return .tag(name)
-        case .notTag(let name):
+        case let .notTag(name):
             index += 1
             return .notTag(name)
-        case .project(let value):
+        case let .project(value):
             index += 1
             return .project(value)
-        case .priority(let value):
+        case let .priority(value):
             index += 1
             guard let prio = TCTask.Priority(rawValue: value) else { return nil }
             return .priority(prio)
-        case .status(let value):
+        case let .status(value):
             index += 1
             guard let status = TCTask.Status(rawValue: value) else { return nil }
             return .status(status)
         case .recur:
             index += 1
             return .recur
-        case .date(let attribute, let comparison, let value):
+        case let .date(attribute, comparison, value):
             index += 1
             return .date(attribute, comparison, value)
         default:

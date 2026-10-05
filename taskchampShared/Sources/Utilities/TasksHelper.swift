@@ -25,8 +25,12 @@ public enum TasksHelper {
 
     /// Generic compare function that returns -1, 0, 1
     private static func compare<T: Comparable>(_ lhs: T, _ rhs: T) -> Int {
-        if lhs < rhs { return -1 }
-        if lhs > rhs { return 1 }
+        if lhs < rhs {
+            return -1
+        }
+        if lhs > rhs {
+            return 1
+        }
         return 0
     }
 
@@ -45,8 +49,12 @@ public enum TasksHelper {
     private static func compareChain(_ lhs: TCTask, _ rhs: TCTask, _ rules: [(TCTask, TCTask) -> Int]) -> Bool {
         for rule in rules {
             let result = rule(lhs, rhs)
-            if result < 0 { return true }
-            if result > 0 { return false }
+            if result < 0 {
+                return true
+            }
+            if result > 0 {
+                return false
+            }
         }
         return false
     }
@@ -57,11 +65,21 @@ public enum TasksHelper {
         return compareChain(lhs, rhs, [
             // 1. Status
             { left, right in
-                if left.status == right.status { return 0 }
-                if left.status == .deleted { return 1 }
-                if right.status == .deleted { return -1 }
-                if left.status == .completed, right.status == .pending { return 1 }
-                if right.status == .completed, left.status == .pending { return -1 }
+                if left.status == right.status {
+                    return 0
+                }
+                if left.status == .deleted {
+                    return 1
+                }
+                if right.status == .deleted {
+                    return -1
+                }
+                if left.status == .completed, right.status == .pending {
+                    return 1
+                }
+                if right.status == .completed, left.status == .pending {
+                    return -1
+                }
                 return 0
             },
             // 2. Due date (earlier first, nil last)
@@ -78,11 +96,21 @@ public enum TasksHelper {
     private static func compareByDate(_ lhs: TCTask, _ rhs: TCTask) -> Bool {
         return compareChain(lhs, rhs, [
             { left, right in
-                if left.status == right.status { return 0 }
-                if left.status == .deleted { return 1 }
-                if right.status == .deleted { return -1 }
-                if left.status == .completed, right.status == .pending { return 1 }
-                if right.status == .completed, left.status == .pending { return -1 }
+                if left.status == right.status {
+                    return 0
+                }
+                if left.status == .deleted {
+                    return 1
+                }
+                if right.status == .deleted {
+                    return -1
+                }
+                if left.status == .completed, right.status == .pending {
+                    return 1
+                }
+                if right.status == .completed, left.status == .pending {
+                    return -1
+                }
                 return 0
             },
             { left, right in compareOptional(left.due, right.due) },
@@ -94,11 +122,21 @@ public enum TasksHelper {
     private static func compareByPriority(_ lhs: TCTask, _ rhs: TCTask) -> Bool {
         return compareChain(lhs, rhs, [
             { left, right in
-                if left.status == right.status { return 0 }
-                if left.status == .deleted { return 1 }
-                if right.status == .deleted { return -1 }
-                if left.status == .completed, right.status == .pending { return 1 }
-                if right.status == .completed, left.status == .pending { return -1 }
+                if left.status == right.status {
+                    return 0
+                }
+                if left.status == .deleted {
+                    return 1
+                }
+                if right.status == .deleted {
+                    return -1
+                }
+                if left.status == .completed, right.status == .pending {
+                    return 1
+                }
+                if right.status == .completed, left.status == .pending {
+                    return -1
+                }
                 return 0
             },
             { left, right in compareOptional(left.priority, right.priority, reversed: true) },
@@ -108,11 +146,16 @@ public enum TasksHelper {
     }
 
     private static func statusBucket(for task: TCTask) -> Int {
-        if task.status == .deleted { return 3 }
-        if task.status == .completed { return 2 }
+        if task.status == .deleted {
+            return 3
+        }
+        if task.status == .completed {
+            return 2
+        }
         let tagNames = Set((task.tags ?? []).map { $0.name })
         if tagNames.contains(TCSyntheticTag.waiting.rawValue)
-            || tagNames.contains(TCSyntheticTag.blocked.rawValue) {
+            || tagNames.contains(TCSyntheticTag.blocked.rawValue)
+        {
             return 1
         }
         return 0

@@ -89,8 +89,8 @@ public final class RemoteSyncService: SyncServiceProtocol {
         // swiftlint:disable all
         guard let remoteServerUrl = getRemoteServerUrl(),
               let remoteClientId = getRemoteClientId(),
-              let remoteEncryptionSecret = getRemoteEncryptionSecret() else
-        {
+              let remoteEncryptionSecret = getRemoteEncryptionSecret()
+        else {
             // swiftlint:enable all
             throw TCError.genericError("Remote server configuration is incomplete")
         }
@@ -132,8 +132,8 @@ public final class GcpSyncService: SyncServiceProtocol {
     public static func sync(replica: Replica) throws -> Bool {
         // swiftlint:disable all
         guard let bucket = getGcpBucket(),
-              let encryptionSecret = getGcpEncryptionSecret() else
-        {
+              let encryptionSecret = getGcpEncryptionSecret()
+        else {
             // swiftlint:enable all
             throw TCError.genericError("GCP configuration is incomplete")
         }
@@ -195,8 +195,8 @@ public final class AwsSyncService: SyncServiceProtocol {
         guard let bucket = getAwsBucket(),
               let accessKeyId = getAwsAccessKeyId(),
               let secretAccessKey = getAwsSecretAccessKey(),
-              let encryptionSecret = getAwsEncryptionSecret() else
-        {
+              let encryptionSecret = getAwsEncryptionSecret()
+        else {
             // swiftlint:enable all
             throw TCError.genericError("S3 configuration is incomplete")
         }

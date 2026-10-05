@@ -360,10 +360,10 @@ public struct TCTask: Codable, Hashable {
             .map { $0.toTCTag() }
 
         guard !syntheticTags.isEmpty else { return }
-        if self.tags == nil {
-            self.tags = syntheticTags
+        if tags == nil {
+            tags = syntheticTags
         } else {
-            self.tags?.append(contentsOf: syntheticTags)
+            tags?.append(contentsOf: syntheticTags)
         }
     }
 

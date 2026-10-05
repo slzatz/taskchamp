@@ -20,7 +20,7 @@ final class SyncReplicaStore: @unchecked Sendable {
             queue.async {
                 do {
                     let replica = self.replica(for: path)
-                    continuation.resume(returning: try body(replica))
+                    try continuation.resume(returning: body(replica))
                 } catch {
                     continuation.resume(throwing: error)
                 }

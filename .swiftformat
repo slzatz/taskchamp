@@ -85,7 +85,7 @@
 
  ### Else
  --elseposition same-line
- --guardelse same-line
+ --guardelse auto
 
  ### Others
  --commas inline

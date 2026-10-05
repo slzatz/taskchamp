@@ -5,13 +5,13 @@ import SwiftUI
 struct DevBadge: View {
     var body: some View {
         #if TASKCHAMP_DEV
-            Text("DEV")
-                .font(.caption2)
-                .bold()
-                .foregroundStyle(.white)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(Capsule().fill(.orange))
+        Text("DEV")
+            .font(.caption2)
+            .bold()
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Capsule().fill(.orange))
         #endif
     }
 }

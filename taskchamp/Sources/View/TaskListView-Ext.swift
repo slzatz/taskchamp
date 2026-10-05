@@ -7,7 +7,6 @@ extension TaskListView {
         allFilters.filter { $0.isFavorite }
     }
 
-    @ViewBuilder
     var favoriteFiltersMenu: some View {
         Menu {
             if favoriteFilters.isEmpty {

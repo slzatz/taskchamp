@@ -25,7 +25,6 @@ public struct AddTagButton: View {
         uniqueTags.filter { $0.isSynthetic() }
     }
 
-    @ViewBuilder
     private func tagChip(_ tag: TCTag, synthetic: Bool) -> some View {
         Text(tag.name)
             .font(.system(.body, design: .monospaced))

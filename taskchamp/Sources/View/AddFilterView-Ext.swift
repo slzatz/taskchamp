@@ -13,7 +13,6 @@ extension AddFilterView {
         filters.filter { !$0.isFavorite }
     }
 
-    @ViewBuilder
     func filterRow(_ filter: TCFilter) -> some View {
         Button {
             selectFilter(filter)
@@ -29,7 +28,6 @@ extension AddFilterView {
         }
     }
 
-    @ViewBuilder
     func filterRowLabel(_ filter: TCFilter) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             if let name = filter.name, !name.isEmpty {
@@ -75,7 +73,6 @@ extension AddFilterView {
         }
     }
 
-    @ViewBuilder
     func filterRowFavoriteAction(_ filter: TCFilter) -> some View {
         Button {
             toggleFavorite(filter)
@@ -88,7 +85,6 @@ extension AddFilterView {
         .tint(.yellow)
     }
 
-    @ViewBuilder
     func filterRowDeleteAction(_ filter: TCFilter) -> some View {
         Button(role: .destructive) {
             deleteFilter(filter)
@@ -167,7 +163,7 @@ extension AddFilterView {
         let query = "project:\(project)"
         if let existing = filters.first(where: { $0.fullDescription == query }) {
             withAnimation {
-                if favorite && !existing.isFavorite {
+                if favorite, !existing.isFavorite {
                     existing.isFavorite = true
                 }
                 syncFiltersToSharedUserDefaults()

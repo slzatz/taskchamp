@@ -18,7 +18,9 @@ struct ShareAddTagView: View {
     @FocusState private var isFocused: Bool
 
     private var searchTags: [TCTag] {
-        if input.isEmpty { return tags }
+        if input.isEmpty {
+            return tags
+        }
         return tags.filter { $0.name.lowercased().contains(input.lowercased()) }
     }
 

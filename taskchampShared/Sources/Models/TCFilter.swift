@@ -72,7 +72,9 @@ public class TCFilter: Codable {
     }
 
     public var isValidFilter: Bool {
-        if filterExpression != nil { return true }
+        if filterExpression != nil {
+            return true
+        }
         return didSetPrio || didSetProject || didSetDue || didSetStatus || didSetTags || didSetRecur
     }
 

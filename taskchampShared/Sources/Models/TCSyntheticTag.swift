@@ -35,8 +35,7 @@ public enum TCSyntheticTag: String, CaseIterable {
         calendar: Calendar = .current
     ) -> Bool {
         switch self {
-        case .overdue, .due, .dueToday, .today, .yesterday,
-            .tomorrow, .week, .month, .quarter, .year:
+        case .overdue, .due, .dueToday, .today, .yesterday, .tomorrow, .week, .month, .quarter, .year:
             return appliesDueDateCase(for: task, now: now, calendar: calendar)
         case .annotated:
             return hasAnnotations

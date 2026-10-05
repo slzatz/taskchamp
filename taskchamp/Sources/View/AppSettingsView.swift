@@ -36,7 +36,7 @@ public struct AppSettingsView: View {
             Form {
                 Section {
                     Picker("Max lines per task", selection: $taskCellLineLimit) {
-                        ForEach(1...5, id: \.self) { value in
+                        ForEach(1 ... 5, id: \.self) { value in
                             Text("\(value)").tag(value)
                         }
                     }
@@ -46,7 +46,7 @@ public struct AppSettingsView: View {
                     Text("Sets how many lines a task description can wrap to in the main task list.")
                 }
                 Section {
-                    Stepper(value: $dueLookaheadDays, in: 1...365) {
+                    Stepper(value: $dueLookaheadDays, in: 1 ... 365) {
                         HStack {
                             Text("+DUE look-ahead")
                             Spacer()
