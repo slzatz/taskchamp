@@ -107,3 +107,4 @@ Switching sync type therefore switches which sqlite file is opened.
 
 - Navigation is a persisted `NavigationPath` (`PathStore`), with `GlobalState` (`isSyncingTasks`, `replicaReady`) injected via `.environment`.
 - Views are split as `FooView.swift` + `FooView-Ext.swift` (extension holding actions/helpers) to stay under the lint body-length limits.
+- The app icon (white "T" on green) is the same design as the macOS Taskwarrior app's. `scripts/make-icon.swift` draws the committed `AppIcon.appiconset/AppIcon.png` and is run by hand (`swift scripts/make-icon.swift`). It is a twin of `~/taskwarrior_macos/Scripts/make-icon.swift`, so a design change belongs in both. The iOS version is opaque and full-bleed because iOS applies its own mask. The extensions use the host app's icon.
