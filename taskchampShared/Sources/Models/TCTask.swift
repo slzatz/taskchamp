@@ -35,6 +35,11 @@ public struct TCTask: Codable, Hashable {
         case due
         case tags
         case recur
+        case scheduled
+        case until
+        case modified
+        case end
+        case entry
     }
 
     /// Helper to handle dynamic keys
@@ -133,14 +138,14 @@ public struct TCTask: Codable, Hashable {
         description = try container.decode(String.self, forKey: .description)
         status = try container.decode(Status.self, forKey: .status)
         priority = try container.decodeIfPresent(Priority.self, forKey: .priority)
-        let dueTimeInterval = try container.decodeIfPresent(String.self, forKey: .due)
-        if let dueTimeInterval, let timeInterval = TimeInterval(dueTimeInterval) {
-            due = Date(timeIntervalSince1970: timeInterval)
-        } else {
-            due = nil
-        }
+        due = try Self.decodeDate(from: container, forKey: .due)
         tags = try container.decodeIfPresent([TCTag].self, forKey: .tags)
         recur = try container.decodeIfPresent(String.self, forKey: .recur)
+        scheduled = try Self.decodeDate(from: container, forKey: .scheduled)
+        until = try Self.decodeDate(from: container, forKey: .until)
+        modified = try Self.decodeDate(from: container, forKey: .modified)
+        end = try Self.decodeDate(from: container, forKey: .end)
+        entry = try Self.decodeDate(from: container, forKey: .entry)
         // Decode dynamic keys for annotations
         let dynamicContainer = try decoder.container(keyedBy: DynamicCodingKey.self)
         var vimangoNoteValue: String?
@@ -160,16 +165,19 @@ public struct TCTask: Codable, Hashable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(uuid, forKey: .uuid)
         try container.encodeIfPresent(project, forKey: .project)
         try container.encode(description, forKey: .description)
         try container.encode(status, forKey: .status)
         try container.encodeIfPresent(priority, forKey: .priority)
         try container.encode(tags, forKey: .tags)
         try container.encodeIfPresent(recur, forKey: .recur)
-        if let due = due {
-            let timeInterval = due.timeIntervalSince1970.rounded()
-            try container.encode(String(timeInterval), forKey: .due)
-        }
+        try Self.encodeDate(due, to: &container, forKey: .due)
+        try Self.encodeDate(scheduled, to: &container, forKey: .scheduled)
+        try Self.encodeDate(until, to: &container, forKey: .until)
+        try Self.encodeDate(modified, to: &container, forKey: .modified)
+        try Self.encodeDate(end, to: &container, forKey: .end)
+        try Self.encodeDate(entry, to: &container, forKey: .entry)
         // Encode dynamic annotation keys
         var dynamicContainer = encoder.container(keyedBy: DynamicCodingKey.self)
 
@@ -180,6 +188,25 @@ public struct TCTask: Codable, Hashable {
                 try dynamicContainer.encode(vimangoNoteAnnotation, forKey: dynamicKey)
             }
         }
+    }
+
+    /// Dates are encoded as strings of whole seconds since 1970, the form the
+    /// Rust bridge hands them over in.
+    private static func encodeDate(
+        _ date: Date?,
+        to container: inout KeyedEncodingContainer<CodingKeys>,
+        forKey key: CodingKeys
+    ) throws {
+        try container.encodeIfPresent(date.map { String($0.timeIntervalSince1970.rounded()) }, forKey: key)
+    }
+
+    private static func decodeDate(
+        from container: KeyedDecodingContainer<CodingKeys>,
+        forKey key: CodingKeys
+    ) throws -> Date? {
+        try container.decodeIfPresent(String.self, forKey: key)
+            .flatMap(TimeInterval.init)
+            .map(Date.init(timeIntervalSince1970:))
     }
 
     public init(

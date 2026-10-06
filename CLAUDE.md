@@ -106,6 +106,7 @@ Switching sync type therefore switches which sqlite file is opened.
 
 ### Misc conventions
 
-- Navigation is a persisted `NavigationPath` (`PathStore`), with `GlobalState` (`isSyncingTasks`, `replicaReady`) injected via `.environment`.
+- Navigation is a `NavigationPath` held by `PathStore`, with `GlobalState` (`isSyncingTasks`, `replicaReady`) injected via `.environment`. `PathStore` can restore a saved path in `init`, but nothing calls its `save()`, so in practice the path is never saved and every launch starts at the task list.
+- `TCTask`'s `Codable` round-trips every field the task screen reads (uuid, dates, tags, the vimango note annotation), with tests in `TaskchampTests`, so wiring up `PathStore.save()` (e.g. on `scenePhase` going to background) is enough to restore an open task. If you do, have `EditTaskView` re-read the task by uuid when it appears: the restored value is a snapshot from disk, and saving from it could overwrite changes synced from the Mac since.
 - Views are split as `FooView.swift` + `FooView-Ext.swift` (extension holding actions/helpers) to stay under the lint body-length limits.
 - The app icon (white "T" on green) is the same design as the macOS Taskwarrior app's. `scripts/make-icon.swift` draws the committed `AppIcon.appiconset/AppIcon.png` and is run by hand (`swift scripts/make-icon.swift`). It is a twin of `~/taskwarrior_macos/Scripts/make-icon.swift`, so a design change belongs in both. The iOS version is opaque and full-bleed because iOS applies its own mask. The extensions use the host app's icon.

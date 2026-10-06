@@ -134,4 +134,56 @@ final class TaskchampTests: XCTestCase {
         XCTAssertEqual(annotations.count, 1)
         XCTAssertEqual(annotations["annotation_1700000000"] as? String, "vimango: Gate")
     }
+
+    /// What `PathStore` would need to restore a task screen: every field the
+    /// screen reads comes back from JSON.
+    func test_codable_roundTripKeepsEveryField() throws {
+        func date(_ seconds: TimeInterval) -> Date {
+            Date(timeIntervalSince1970: seconds)
+        }
+        var task = TCTask(
+            uuid: "6f1c2a5e-0b7d-4c3e-9a8f-1d2e3f4a5b6c",
+            project: "home",
+            description: "Fix the gate",
+            status: .pending,
+            priority: .high,
+            due: date(1_800_000_000),
+            vimangoNote: "Gate",
+            tags: [TCTag(name: "outside")],
+            recur: "weekly"
+        )
+        task.scheduled = date(1_790_000_000)
+        task.until = date(1_810_000_000)
+        task.modified = date(1_785_000_000)
+        task.end = date(1_786_000_000)
+        task.entry = date(1_780_000_000)
+
+        let decoded = try JSONDecoder().decode(TCTask.self, from: JSONEncoder().encode(task))
+
+        XCTAssertEqual(decoded.uuid, task.uuid)
+        XCTAssertEqual(decoded.project, "home")
+        XCTAssertEqual(decoded.description, "Fix the gate")
+        XCTAssertEqual(decoded.status, .pending)
+        XCTAssertEqual(decoded.priority, .high)
+        XCTAssertEqual(decoded.recur, "weekly")
+        XCTAssertEqual(decoded.tags?.map(\.name), ["outside"])
+        XCTAssertEqual(decoded.vimangoNote, "Gate")
+        XCTAssertEqual(decoded.due, task.due)
+        XCTAssertEqual(decoded.scheduled, task.scheduled)
+        XCTAssertEqual(decoded.until, task.until)
+        XCTAssertEqual(decoded.modified, task.modified)
+        XCTAssertEqual(decoded.end, task.end)
+        XCTAssertEqual(decoded.entry, task.entry)
+    }
+
+    func test_codable_absentDatesStayNil() throws {
+        let task = TCTask(uuid: "u", description: "No dates", status: .pending)
+        let decoded = try JSONDecoder().decode(TCTask.self, from: JSONEncoder().encode(task))
+        XCTAssertNil(decoded.due)
+        XCTAssertNil(decoded.scheduled)
+        XCTAssertNil(decoded.until)
+        XCTAssertNil(decoded.modified)
+        XCTAssertNil(decoded.end)
+        XCTAssertNil(decoded.entry)
+    }
 }
