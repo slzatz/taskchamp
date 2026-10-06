@@ -223,12 +223,6 @@ public class TaskchampionService {
         let due = task.due?.timeIntervalSince1970.rounded()
         let dueString = due != nil ? String(Int(due ?? 0)) : nil
 
-        var annotations: RustVec<Annotation>?
-        if let annotation = task.rustAnnotationFromObsidianNote {
-            annotations = RustVec<Annotation>()
-            annotations?.push(value: annotation)
-        }
-
         let task = replica.update_task(
             task.uuid.intoRustString(),
             task.description.intoRustString(),
@@ -236,7 +230,7 @@ public class TaskchampionService {
             priority,
             task.project?.intoRustString(),
             task.status.rawValue.intoRustString(),
-            annotations,
+            nil, // annotations are added once, by linkVimangoNote, not on every save
             task.rustVecOfTags
         )
         if task == nil {
@@ -279,6 +273,27 @@ public class TaskchampionService {
         let task = replica.stop_task(uuid.intoRustString())
         if task == nil {
             throw TCError.genericError("Failed to stop task")
+        }
+        _ = replica.sync_no_server()
+        _Concurrency.Task.detached {
+            try? await self.sync {
+                onSync()
+            }
+        }
+    }
+
+    /// Records that the task has a vimango note, as a `vimango: <title>` annotation.
+    /// Does nothing if the task already has that exact annotation.
+    public func linkVimangoNote(uuid: String, title: String, onSync: @escaping () -> Void = {}) throws {
+        guard let replica else {
+            throw TCError.genericError("Database not set")
+        }
+        let task = replica.annotate_task(
+            uuid.intoRustString(),
+            (TCTask.vimangoNotePrefix + title).intoRustString()
+        )
+        if task == nil {
+            throw TCError.genericError("Failed to annotate task")
         }
         _ = replica.sync_no_server()
         _Concurrency.Task.detached {

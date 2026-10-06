@@ -92,6 +92,10 @@ extension ReplicaRefMut {
     public func stop_task<GenericIntoRustString: IntoRustString>(_ uuid: GenericIntoRustString) -> Optional<Task> {
         { let val = __swift_bridge__$Replica$stop_task(ptr, { let rustString = uuid.intoRustString(); rustString.isOwned = false; return rustString.ptr }()); if val != nil { return Task(ptr: val!) } else { return nil } }()
     }
+
+    public func annotate_task<GenericIntoRustString: IntoRustString>(_ uuid: GenericIntoRustString, _ description: GenericIntoRustString) -> Optional<Task> {
+        { let val = __swift_bridge__$Replica$annotate_task(ptr, { let rustString = uuid.intoRustString(); rustString.isOwned = false; return rustString.ptr }(), { let rustString = description.intoRustString(); rustString.isOwned = false; return rustString.ptr }()); if val != nil { return Task(ptr: val!) } else { return nil } }()
+    }
 }
 public class ReplicaRef {
     var ptr: UnsafeMutableRawPointer

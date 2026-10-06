@@ -113,6 +113,7 @@ void* __swift_bridge__$Replica$create_task(void* self, void* uuid, void* descrip
 void* __swift_bridge__$Replica$update_task(void* self, void* uuid, void* description, void* due, void* priority, void* project, void* status, void* annotations, void* tags);
 void* __swift_bridge__$Replica$start_task(void* self, void* uuid);
 void* __swift_bridge__$Replica$stop_task(void* self, void* uuid);
+void* __swift_bridge__$Replica$annotate_task(void* self, void* uuid, void* description);
 void* __swift_bridge__$new_operations(void);
 void* __swift_bridge__$TaskData$get_uuid(void* self);
 void* __swift_bridge__$Tag$get_value(void* self);

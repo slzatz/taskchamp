@@ -69,7 +69,7 @@ All three executables share the app group `group.com.slzatz.taskchamp`, which is
 - Reads (`getTasks`, `getPendingTasks`, `getTask`, `getAllProjects`) are `@MainActor` because Rust `TaskRef` handles are not Sendable. `TCTask(from: TaskRef)` copies everything into a plain Swift struct immediately.
 - Writes (`createTask`, `updateTask`, `startTask`, `stopTask`, status toggles) call `replica.sync_no_server()` right after mutating to rebuild the working set, then kick off a detached `sync()` unless `skipSync: true`. `sync()` cancels any in-flight sync task, sets `needToSync` on failure, and reloads widget timelines.
 - Syncs never touch the main `Replica`. The Rust `Replica` is not thread-safe, so `SyncReplicaStore` (`taskchampShared/Sources/Services/SyncReplicaStore.swift`) opens a second `Replica` on the same database and uses it only on one serial queue, which also keeps syncs from overlapping. The two SQLite connections coordinate through WAL mode, like the app, widget, and desktop Taskwarrior do. A main-actor write made during a network sync waits on SQLite's busy timeout (about 5 s) for the sync's write transaction to finish. Never pass the main `Replica` to a background queue.
-- Rust strings go in via `.intoRustString()`; tags via `RustVec<Tag>`; the Obsidian note is passed as a `RustVec<Annotation>`.
+- Rust strings go in via `.intoRustString()`; tags via `RustVec<Tag>`. `updateTask` never passes annotations, because the bridge's `update_task` adds every one it is given, so saves used to pile up duplicates. The one annotation the app writes goes through `annotate_task`, which skips an exact duplicate.
 
 ### Where the database lives
 
@@ -101,7 +101,8 @@ Switching sync type therefore switches which sqlite file is opened.
 
 - Deep links use the `taskchamp://` scheme, handled in `ContentView.handleDeepLink`: `task/<uuid>`, `task/new?content=…` (also falls back to `.pendingNewTaskContent` in UserDefaults), and `filter/<uuid|default>`. Widgets, notifications, and Shortcuts all route through these; notification taps arrive via `.TCTappedDeepLinkNotification`.
 - `FilterAppEntity.swift` is duplicated verbatim in `taskchamp/Sources/Intents/` and `taskchampWidget/Sources/Intents/` because App Intents entities must compile into each extension. Edit both. The shared helpers (`getFilterFromUserDefaults`, `getSavedFiltersFromUserDefaults`) live in `taskchampShared/Sources/Models/FilterAppEntity.swift`.
-- Obsidian integration is a task annotation of the form `task-note: <name>`; `FileService` resolves the note folder through a security-scoped bookmark stored in UserDefaults.
+- Task notes live in vimango (the upstream Obsidian integration was removed). The note button in `EditTaskView` opens `vimango://task-note?uuid=…&title=…&project=…` in VimNotes (`~/vimango_ios`), which finds the note by a `taskwarrior: <uuid>` frontmatter line, or creates it. Once iOS reports that the URL opened, `TaskchampionService.linkVimangoNote` adds a `vimango: <title>` annotation, which only sets `TCTask.hasNote` and the button label. Old `task-note:` annotations are ignored.
+- The app registers the URL scheme `taskchampdev` (in `Project.swift`) for links from other apps, such as the note's "Open task" link. It doesn't register `taskchamp`, because the App Store Taskchamp claims it; `taskchamp://` still works for the app's own widgets and notifications. `handleDeepLink` accepts both.
 
 ### Misc conventions
 

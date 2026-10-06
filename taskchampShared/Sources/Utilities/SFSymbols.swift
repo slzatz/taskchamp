@@ -14,10 +14,8 @@ public enum SFSymbols: String {
     case partyPopperFill = "party.popper.fill"
     case questionmarkCircle = "questionmark.circle"
     case backArrow = "arrow.counterclockwise"
-    case obsidian = "suit.diamond.fill"
-    case obsidianNoFill = "suit.diamond"
-    case obsidianCreate = "plus.diamond.fill"
-    case obsidianOpen = "diamond.fill"
+    case noteCreate = "square.and.pencil"
+    case noteOpen = "doc.text"
     case cloud
     case cloudSlash = "icloud.slash"
     case folder

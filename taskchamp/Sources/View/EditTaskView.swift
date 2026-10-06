@@ -24,10 +24,8 @@ public struct EditTaskView: View, UseKeyboardToolbar {
     @State private var showTagPopover = false
     @State private var showProjectPopover = false
     @State var isShowingAlert = false
-    @State var isShowingObsidianSettings = false
     @State var alertTitle = ""
     @State var alertMessage = ""
-    @State var showNoteView = false
 
     @FocusState var focusedField: FormField?
     enum FormField {
@@ -151,11 +149,11 @@ public struct EditTaskView: View, UseKeyboardToolbar {
             }
             ToolbarItemGroup(placement: .bottomBar) {
                 Button {
-                    handleObsidianTap()
+                    handleVimangoTap()
                 } label: {
                     Label(
-                        task.hasNote ? "Open Obsidian note" : "Create Obsidian note",
-                        systemImage: task.hasNote ? SFSymbols.obsidianOpen.rawValue : SFSymbols.obsidianCreate.rawValue
+                        task.hasNote ? "Open vimango note" : "Create vimango note",
+                        systemImage: task.hasNote ? SFSymbols.noteOpen.rawValue : SFSymbols.noteCreate.rawValue
                     )
                     .labelStyle(.automatic)
                 }
@@ -217,9 +215,6 @@ public struct EditTaskView: View, UseKeyboardToolbar {
         .alert(isPresented: $isShowingAlert) {
             Alert(title: Text(alertTitle), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
-        .sheet(isPresented: $isShowingObsidianSettings) {
-            ObsidianSettingsView()
-        }
         .sheet(isPresented: $showTagPopover) {
             NavigationStack {
                 AddTagView(selectedTags: $tags)
@@ -228,11 +223,6 @@ public struct EditTaskView: View, UseKeyboardToolbar {
         .sheet(isPresented: $showProjectPopover) {
             NavigationStack {
                 SelectProjectView(selectedProject: $project)
-            }
-        }
-        .sheet(isPresented: $showNoteView) {
-            NavigationStack {
-                ObsidianNoteView(taskNote: task.obsidianNote ?? "")
             }
         }
         .navigationTitle(description)

@@ -30,7 +30,15 @@ let project = Project(
                     ],
                     "NSAccentColorName": "AccentColor",
                     "ITSAppUsesNonExemptEncryption": false,
-                    "CFBundleShortVersionString": "3.7"
+                    "CFBundleShortVersionString": "3.7",
+                    // VimNotes' task notes link back with taskchampdev://task/<uuid>.
+                    // Not taskchamp://, which the App Store Taskchamp claims.
+                    "CFBundleURLTypes": [
+                        [
+                            "CFBundleURLName": "com.slzatz.taskchamp",
+                            "CFBundleURLSchemes": ["taskchampdev"]
+                        ]
+                    ]
                 ]
             ),
             sources: ["taskchamp/Sources/**"],

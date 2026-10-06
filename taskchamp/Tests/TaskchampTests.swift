@@ -111,4 +111,27 @@ final class TaskchampTests: XCTestCase {
             "due:today", "end.after:bogus"
         ])
     }
+
+    func test_vimangoNoteTitle_onlyFromVimangoAnnotations() {
+        XCTAssertEqual(TCTask.vimangoNoteTitle(fromAnnotation: "vimango: Fix the gate"), "Fix the gate")
+        XCTAssertNil(TCTask.vimangoNoteTitle(fromAnnotation: "task-note: Fix-the-gate"))
+        XCTAssertNil(TCTask.vimangoNoteTitle(fromAnnotation: "called the vimango: guy"))
+    }
+
+    func test_vimangoNote_decodesAndEncodesAsOneAnnotation() throws {
+        let json = """
+        {"uuid": "u", "description": "Fix the gate", "status": "pending",
+         "annotation_1700000000": "vimango: Gate", "annotation_1700000001": "called the plumber"}
+        """
+        let task = try JSONDecoder().decode(TCTask.self, from: Data(json.utf8))
+        XCTAssertEqual(task.vimangoNote, "Gate")
+        XCTAssertEqual(task.noteAnnotationKey, "annotation_1700000000")
+
+        let encoded = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(task)) as? [String: Any]
+        )
+        let annotations = encoded.filter { $0.key.hasPrefix("annotation_") }
+        XCTAssertEqual(annotations.count, 1)
+        XCTAssertEqual(annotations["annotation_1700000000"] as? String, "vimango: Gate")
+    }
 }

@@ -23,7 +23,6 @@ public struct TaskListView: View {
     @State var editMode: EditMode = .inactive
     @State var searchText = ""
     @State var isShowingFilterView = false
-    @State var isShowingObsidianSettings = false
     @State var isShowingSyncSettings = false
     @State var isShowingAppSettings = false
     @State var sortType: TasksHelper.TCSortType = .init(
@@ -265,9 +264,6 @@ public struct TaskListView: View {
                     Button("Sync Settings") {
                         isShowingSyncSettings.toggle()
                     }
-                    Button("Obsidian Settings") {
-                        isShowingObsidianSettings.toggle()
-                    }
                     Menu("Sort by") {
                         sortButton(sortType: .defaultSort)
                         sortButton(sortType: .date)
@@ -336,9 +332,6 @@ public struct TaskListView: View {
         })
         .sheet(isPresented: $isShowingFilterView) {
             AddFilterView(selectedFilter: $selectedFilter)
-        }
-        .sheet(isPresented: $isShowingObsidianSettings) {
-            ObsidianSettingsView()
         }
         .sheet(isPresented: $isShowingSyncSettings) {
             SyncServiceView(

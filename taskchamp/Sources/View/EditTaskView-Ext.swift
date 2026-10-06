@@ -30,62 +30,40 @@ extension EditTaskView {
         focusedField = nil
     }
 
-    func handleObsidianTap() {
-        do {
-            let taskNoteFolderBookmark: Data? = UserDefaultsManager.shared.getValue(forKey: .taskNoteFolderBookmark)
-            if taskNoteFolderBookmark == nil {
-                isShowingObsidianSettings = true
+    /// Opens the task's note in VimNotes, which finds it by the task's uuid or
+    /// creates it. The task is annotated only once VimNotes has taken the URL.
+    func handleVimangoTap() {
+        var components = URLComponents()
+        components.scheme = "vimango"
+        components.host = "task-note"
+        components.queryItems = [
+            URLQueryItem(name: "uuid", value: task.uuid),
+            URLQueryItem(name: "title", value: task.description)
+        ]
+        if let project = task.project, !project.isEmpty {
+            components.queryItems?.append(URLQueryItem(name: "project", value: project))
+        }
+        guard let url = components.url else {
+            return
+        }
+        UIApplication.shared.open(url) { opened in
+            guard opened else {
+                isShowingAlert = true
+                alertTitle = "Can't open VimNotes"
+                alertMessage = "VimNotes needs to be installed to keep task notes."
                 return
             }
-            if task.hasNote {
-                let noteUrl = try? FileService.shared.createObsidianNote(
-                    for: task.obsidianNote ?? "",
-                    taskStatus: task.status
-                )
-                guard let noteUrl else {
-                    isShowingAlert = true
-                    alertTitle = "There was an error"
-                    alertMessage =
-                        "Failed to create task note. Please check your Obsidian vault and path settings and try again."
-                    return
-                }
-                _ = noteUrl
-
-                showNoteView = true
+            guard !task.hasNote else {
                 return
             }
-            let taskNote = task.description.replacing(" ", with: "-")
-            let newTask = TCTask(
-                uuid: task.uuid,
-                project: task.project,
-                description: task.description,
-                status: task.status,
-                priority: task.priority,
-                due: task.due,
-                obsidianNote: taskNote
-            )
-            let noteUrl = try? FileService.shared.createObsidianNote(for: taskNote, taskStatus: task.status)
-
-            guard let noteUrl else {
+            do {
+                try TaskchampionService.shared.linkVimangoNote(uuid: task.uuid, title: task.description)
+                task = try TaskchampionService.shared.getTask(uuid: task.uuid)
+            } catch {
                 isShowingAlert = true
                 alertTitle = "There was an error"
-                alertMessage =
-                    "Failed to create task note. Please check your Obsidian vault and path settings and try again."
-                return
+                alertMessage = "The note was opened, but the task couldn't be marked as having one."
             }
-
-            _ = noteUrl
-
-            try TaskchampionService.shared.updateTask(newTask)
-            task = newTask
-
-            showNoteView = true
-            return
-        } catch {
-            isShowingAlert = true
-            alertTitle = "There was an error"
-            alertMessage =
-                "Failed to create task note. Please check your Obsidian vault and path settings and try again."
         }
     }
 

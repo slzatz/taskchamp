@@ -5,11 +5,6 @@ public enum TCUserDefaults: String {
     case savedFilters
     case sortType
 
-    case taskNoteFolderBookmark
-    case taskNotesFolderPath
-    case obsidianVaultName
-    case tasksFolderPath
-
     case selectedSyncType
 
     case remoteServerUrl

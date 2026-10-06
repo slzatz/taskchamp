@@ -120,13 +120,7 @@ public struct TCTask: Codable, Hashable {
             self.entry = Date(timeIntervalSince1970: timeInterval)
         }
 
-        // Look for obsidian note in annotations
-        var obsidianNoteValue: String?
-        for annotation in annotations where annotation.starts(with: "task-note:") {
-            obsidianNoteValue = annotation.replacingOccurrences(of: "task-note: ", with: "")
-            break
-        }
-        obsidianNote = obsidianNoteValue
+        vimangoNote = annotations.lazy.compactMap(Self.vimangoNoteTitle(fromAnnotation:)).first
 
         self.tags = tags.isEmpty ? nil : tags
         appendSwiftSyntheticTags(hasAnnotations: !annotations.isEmpty)
@@ -149,18 +143,18 @@ public struct TCTask: Codable, Hashable {
         recur = try container.decodeIfPresent(String.self, forKey: .recur)
         // Decode dynamic keys for annotations
         let dynamicContainer = try decoder.container(keyedBy: DynamicCodingKey.self)
-        var obsidianNoteValue: String?
+        var vimangoNoteValue: String?
         var noteAnnotationKey: String?
 
         for key in dynamicContainer.allKeys where key.stringValue.starts(with: "annotation_") {
             let annotationValue = try dynamicContainer.decode(String.self, forKey: key)
-            if annotationValue.starts(with: "task-note:") {
+            if let title = Self.vimangoNoteTitle(fromAnnotation: annotationValue) {
                 noteAnnotationKey = key.stringValue
-                obsidianNoteValue = annotationValue.replacingOccurrences(of: "task-note: ", with: "")
+                vimangoNoteValue = title
                 break
             }
         }
-        obsidianNote = obsidianNoteValue
+        vimangoNote = vimangoNoteValue
         self.noteAnnotationKey = noteAnnotationKey
     }
 
@@ -179,20 +173,11 @@ public struct TCTask: Codable, Hashable {
         // Encode dynamic annotation keys
         var dynamicContainer = encoder.container(keyedBy: DynamicCodingKey.self)
 
-        // Add the obsidianNote as a dynamic annotation
-        if let obsidianNoteValue = obsidianNote {
-            if let existingKey = noteAnnotationKey {
-                if let dynamicKey = DynamicCodingKey(stringValue: existingKey) {
-                    try dynamicContainer.encode(
-                        "task-note: \(obsidianNoteValue)",
-                        forKey: dynamicKey
-                    )
-                }
-            }
-            let modifiedDate = String(Int(Date().timeIntervalSince1970.rounded()))
-            let dynamicKey = DynamicCodingKey(stringValue: "annotation_\(modifiedDate))")
-            if let dynamicKey = dynamicKey {
-                try dynamicContainer.encode("task-note: \(obsidianNoteValue)", forKey: dynamicKey)
+        // Add the vimango note as a dynamic annotation
+        if let vimangoNoteAnnotation {
+            let key = noteAnnotationKey ?? "annotation_\(Int(Date().timeIntervalSince1970.rounded()))"
+            if let dynamicKey = DynamicCodingKey(stringValue: key) {
+                try dynamicContainer.encode(vimangoNoteAnnotation, forKey: dynamicKey)
             }
         }
     }
@@ -204,7 +189,7 @@ public struct TCTask: Codable, Hashable {
         status: Status,
         priority: Priority? = nil,
         due: Date? = nil,
-        obsidianNote: String? = nil,
+        vimangoNote: String? = nil,
         noteAnnotationKey: String? = nil,
         tags: [TCTag]? = nil,
         recur: String? = nil
@@ -215,7 +200,7 @@ public struct TCTask: Codable, Hashable {
         self.status = status
         self.priority = priority
         self.due = due
-        self.obsidianNote = obsidianNote
+        self.vimangoNote = vimangoNote
         self.noteAnnotationKey = noteAnnotationKey
         self.tags = tags
         self.recur = recur
@@ -230,7 +215,9 @@ public struct TCTask: Codable, Hashable {
     public var status: Status
     public var priority: Priority?
     public var due: Date?
-    public var obsidianNote: String?
+    /// The title of the task's vimango note, from a `vimango: <title>` annotation.
+    /// VimNotes finds the note by the task's uuid, so this only says one exists.
+    public var vimangoNote: String?
     public var noteAnnotationKey: String?
     public var tags: [TCTag]?
     public var recur: String?
@@ -240,22 +227,20 @@ public struct TCTask: Codable, Hashable {
     public var end: Date?
     public var entry: Date?
 
-    public var obsidianNoteAnnotation: String? {
-        guard let note = obsidianNote else {
+    public static let vimangoNotePrefix = "vimango: "
+
+    public static func vimangoNoteTitle(fromAnnotation annotation: String) -> String? {
+        guard annotation.hasPrefix(vimangoNotePrefix) else {
             return nil
         }
-        return "task-note: \(note)"
+        return String(annotation.dropFirst(vimangoNotePrefix.count))
     }
 
-    public var rustAnnotationFromObsidianNote: Annotation? {
-        guard let note = obsidianNoteAnnotation else {
+    public var vimangoNoteAnnotation: String? {
+        guard let vimangoNote else {
             return nil
         }
-
-        return Taskchampion.create_annotation(
-            note,
-            String(Int(Date().timeIntervalSince1970.rounded()))
-        )
+        return Self.vimangoNotePrefix + vimangoNote
     }
 
     public var rustTags: [Tag?]? {
@@ -300,7 +285,7 @@ public struct TCTask: Codable, Hashable {
     }
 
     public var hasNote: Bool {
-        obsidianNote != nil
+        vimangoNote != nil
     }
 
     public var isRecurring: Bool {

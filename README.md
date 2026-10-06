@@ -21,8 +21,7 @@ Use [Taskwarrior](https://taskwarrior.org/), a simple command line interface to 
   - [Setup with GCP](#setup-with-gcp)
   - [Setup with iCloud Drive](#setup-with-icloud-drive)
 - [Filters](#filters)
-- [Obsidian integration](#obsidian-integration)
-  - [Interact with Obsidian notes from Taskwarrior](#interact-with-obsidian-notes-from-taskwarrior)
+- [vimango task notes](#vimango-task-notes)
 
 <!-- TOC end -->
 
@@ -210,71 +209,14 @@ Date comparisons work on `end`, `entry`, `due`, `scheduled`, `until` and `modifi
 
 Relative dates are recalculated every time the filter runs, so `status:completed end.after:now-1wk` always shows the last seven days. A leading `task` (from a pasted command line) is ignored. Taskchamp rejects filters containing terms it doesn't understand (for example `due:today` without a modifier) rather than silently ignoring them.
 
-<!-- TOC --><a name="obsidian-integration"></a>
+<!-- TOC --><a name="vimango-task-notes"></a>
 
-## Obsidian integration
+## vimango task notes
 
-Taskchamp is able to create Obsidian notes for your tasks. Learn more about Obsidian [here](https://obsidian.md/). In order to set Taskchamp to work with Obsidian follow the following steps:
+A task's long notes live in [vimango](https://github.com/slzatz/vimango), through the VimNotes iOS app (`~/vimango_ios`). Taskchamp never reads or writes a vimango database.
 
-1. Download the Obsidian App
-2. Create an Obsidian vault
-3. Optional: create a sub-directory for your tasks inside your vault. Otherwise, you can use the base directory of the vault to store your task notes.
-4. Create a new task using taskchamp
-5. Navigate to the newly created task and press on the "Create obsidian note" button on the bottom of the screen.
-6. The first time you do this, you will be prompted for the vault name and sub-directory created earlier. You can always modify these from the settings menu in the Taskchamp app.
-7. Once you enter the fields, press the Obsidian note button again, this will take your task note in Obsidian.
+1. Open a task and tap **Create vimango note** at the bottom of the screen.
+2. VimNotes opens and creates the note in context "none" and folder "none", then opens it in the editor. Its frontmatter holds the task's uuid (`taskwarrior: <uuid>`), followed by an "Open task in Taskchamp" link (`taskchampdev://task/<uuid>`).
+3. Taskchamp adds a `vimango: <title>` annotation to the task, and the button becomes **Open vimango note**.
 
-The way this works is very simple, a new annotation will be created on the task, which contains the title of the task (with some parsing, like removing whitespaces)
-
-> Note: if you delete the task note or modify its title, you will need to manually update the annotation on the task so that Taskchamp is aware that that note not longer exists or it changed name.
-
-<!-- TOC --><a name="interact-with-obsidian-notes-from-taskwarrior"></a>
-
-### Interact with Obsidian notes from Taskwarrior
-
-If you want to be able to replicate this functionality for Taskwarrior on MacOS, you can use a bash script that I have created:
-
-```bash
-#!/bin/zsh
-
-if [[ $1 =~ ^[0-9]+$ ]]; then
-  # $1 is a task ID
-  task_id=$1
-else
-  # $1 is a task name
-  task_id=$(task -g "$1" | awk 'NR==4 {print $1}')
-  echo "Task ID: $task_id"
-fi
-
-task=$(task $task_id)
-
-vault_name="<YOUT_VAULT_NAME>"
-sub_dir="<SUBDIRECTORY_FOR_YOUR_TASK_NOTES>"
-
-task_note=$(echo "$task" | awk '/task-note:/ {print $4}')
-
-if [ -n "$task_note" ]; then
-   open "obsidian://open?vault=$vault_name&file=$sub_dir/$task_note"
-   exit 0
-fi
-
-description=$(echo "$task" | awk '/^Description/ {print $2}')
-
-if [ -z "$description" ]; then
-  echo "Error: Task not found"
-  exit 1
-fi
-
-file_name="task-$description"
-
-task $task_id annotate "task-note: "$file_name
-
-open "obsidian://new?vault=$vault_name&file=$sub_dir/$file_name"
-
-```
-
-> Important: Update the `<YOUT_VAULT_NAME>` and `<SUBDIRECTORY_FOR_YOUR_TASK_NOTES>` values before using the script.
-
-Save this script to a file, for example `task-note.sh`, and make it executable by running `chmod +x task-note.sh`.
-Run the script by passing the task number as a command.
-For example: `task-note.sh 4` will create or open the task note for task with Taskwarrior ID 4
+VimNotes finds the note by the uuid in its frontmatter, so renaming the note doesn't break the link. The note reaches the vimango server on VimNotes' next sync.

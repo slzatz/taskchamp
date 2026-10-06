@@ -82,6 +82,7 @@ mod ffi {
         ) -> Option<Task>;
         fn start_task(&mut self, uuid: String) -> Option<Task>;
         fn stop_task(&mut self, uuid: String) -> Option<Task>;
+        fn annotate_task(&mut self, uuid: String, description: String) -> Option<Task>;
     }
 
     extern "Rust" {
@@ -709,6 +710,30 @@ impl Replica {
             let mut task = self.inner.get_task(uuid).await.ok()??;
             let mut ops = tc::Operations::new();
             task.stop(&mut ops).ok()?;
+            self.inner.commit_operations(ops).await.ok()?;
+            Some(Task(task))
+        })
+    }
+
+    /// Adds an annotation dated now, unless the task already has one with the
+    /// same description.
+    fn annotate_task(&mut self, uuid: String, description: String) -> Option<Task> {
+        self.runtime.block_on(async {
+            let uuid = tc::Uuid::parse_str(&uuid).ok()?;
+            let mut task = self.inner.get_task(uuid).await.ok()??;
+            if task.get_annotations().any(|a| a.description == description) {
+                return Some(Task(task));
+            }
+            let secs = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .ok()?
+                .as_secs() as i64;
+            let annotation = tc::Annotation {
+                entry: tc::utc_timestamp(secs),
+                description,
+            };
+            let mut ops = tc::Operations::new();
+            task.add_annotation(annotation, &mut ops).ok()?;
             self.inner.commit_operations(ops).await.ok()?;
             Some(Task(task))
         })

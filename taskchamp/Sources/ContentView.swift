@@ -47,7 +47,10 @@ public struct ContentView: View {
 
     func handleDeepLink(url: URL) {
         Task {
-            guard url.scheme == "taskchamp" else { return }
+            // Widgets and notifications use taskchamp://, which this app doesn't
+            // register (the App Store Taskchamp does). Other apps, like VimNotes'
+            // task-note back-links, reach this build through taskchampdev://.
+            guard url.scheme == "taskchamp" || url.scheme == "taskchampdev" else { return }
 
             if url.host == "filter" {
                 let filterIdString = url.pathComponents[1]
