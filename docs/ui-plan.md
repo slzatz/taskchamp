@@ -114,8 +114,8 @@ Implemented with the user's choices: tag badges shown (user tags only, synthetic
 
 # Round 3 — note icon in task rows (2026-10-09)
 
-**Implemented, awaiting on-device check.** A row whose task has a vimango note (`TCTask.hasNote`, from the `vimango:` annotation) shows a `doc.text` button in the accent color at the right end of line 1, above the due date. Tapping it opens the note in VimNotes, and tapping anywhere else in the row still opens the edit screen (`.buttonStyle(.borderless)` keeps the button's tap separate from the `NavigationLink`). The button is hidden in multi-select mode. Rows without a note are unchanged: notes are still created from the edit screen, which adds the annotation.
+**DONE (2026-10-09), confirmed on the phone.** A row whose task has a vimango note (`TCTask.hasNote`, from the `vimango:` annotation) shows a `doc.text` button in the accent color at the right end of line 1, above the due date. Tapping it opens the note in VimNotes, and tapping anywhere else in the row still opens the edit screen (`.buttonStyle(.borderless)` keeps the button's tap separate from the `NavigationLink`). The button is hidden in multi-select mode. Rows without a note are unchanged: notes are still created from the edit screen, which adds the annotation.
 
 - `TCTask.vimangoNoteURL` (`taskchampShared/Sources/Models/TCTask-Vimango.swift`) builds the `vimango://task-note` URL for both the row and `EditTaskView`.
 - `TaskCellView(task:openNote:)` draws the button; `TaskListView.openNote(_:)` opens the URL and shows "Can't open VimNotes" if that fails.
-- On the phone, check: tapping the icon opens the right note; tapping the row text opens the edit screen; the icon's tap area isn't too easy to hit by accident.
+- Confirmed on the phone: the icon opens the right note, and the tap area (16 pt to its left, a little above and below) is big enough that misses into the edit screen haven't been a problem.
