@@ -25,6 +25,7 @@ public struct TaskListView: View {
     @State var isShowingFilterView = false
     @State var isShowingSyncSettings = false
     @State var isShowingAppSettings = false
+    @State var isShowingNoteAlert = false
     @State var sortType: TasksHelper.TCSortType = .init(
         rawValue: UserDefaultsManager.standard
             .getValue(forKey: .sortType) ?? TasksHelper.TCSortType.defaultSort.rawValue
@@ -94,7 +95,7 @@ public struct TaskListView: View {
         List(selection: $selection) {
             ForEach(searchedTasks, id: \.uuid) { task in
                 NavigationLink(value: task) {
-                    TaskCellView(task: task)
+                    TaskCellView(task: task, openNote: isEditModeActive ? nil : { openNote(task) })
                 }
                 .if(task.status != .deleted) {
                     $0.swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -341,6 +342,11 @@ public struct TaskListView: View {
         }
         .sheet(isPresented: $isShowingAppSettings) {
             AppSettingsView()
+        }
+        .alert("Can't open VimNotes", isPresented: $isShowingNoteAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("VimNotes needs to be installed to keep task notes.")
         }
         .navigationDestination(for: TCTask.self) { task in
             EditTaskView(task: task)

@@ -111,3 +111,11 @@ Implemented with the user's choices: tag badges shown (user tags only, synthetic
 1. **Header title is a filter dropdown — implemented, awaiting on-device check.** Outside edit mode, the principal header's title is a `Menu` (`filterSwitcherMenu` in `TaskListView-Ext.swift`) showing the compact title plus a chevron. The menu lists "My tasks", then every saved filter (favorites first, in `order`), each with a checkmark when selected, then "Manage Filters" to open `AddFilterView`. In edit mode, the header is still plain text.
 2. **Save button on the filter screen — implemented, awaiting on-device check.** `AddFilterView`'s command-line row has an inline "Save" button (`addFilter()`, the same action as Return), disabled while the field is empty.
 3. Note: the Projects section on the filter screen came from upstream commit fd50b68 (2026-06-13, merged to upstream dev via PR #131). Upstream's release branch stops at 2026-05-23, so the App Store build doesn't have it.
+
+# Round 3 — note icon in task rows (2026-10-09)
+
+**Implemented, awaiting on-device check.** A row whose task has a vimango note (`TCTask.hasNote`, from the `vimango:` annotation) shows a `doc.text` button in the accent color at the right end of line 1, above the due date. Tapping it opens the note in VimNotes, and tapping anywhere else in the row still opens the edit screen (`.buttonStyle(.borderless)` keeps the button's tap separate from the `NavigationLink`). The button is hidden in multi-select mode. Rows without a note are unchanged: notes are still created from the edit screen, which adds the annotation.
+
+- `TCTask.vimangoNoteURL` (`taskchampShared/Sources/Models/TCTask-Vimango.swift`) builds the `vimango://task-note` URL for both the row and `EditTaskView`.
+- `TaskCellView(task:openNote:)` draws the button; `TaskListView.openNote(_:)` opens the URL and shows "Can't open VimNotes" if that fails.
+- On the phone, check: tapping the icon opens the right note; tapping the row text opens the edit screen; the icon's tap area isn't too easy to hit by accident.

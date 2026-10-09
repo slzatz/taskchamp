@@ -33,17 +33,7 @@ extension EditTaskView {
     /// Opens the task's note in VimNotes, which finds it by the task's uuid or
     /// creates it. The task is annotated only once VimNotes has taken the URL.
     func handleVimangoTap() {
-        var components = URLComponents()
-        components.scheme = "vimango"
-        components.host = "task-note"
-        components.queryItems = [
-            URLQueryItem(name: "uuid", value: task.uuid),
-            URLQueryItem(name: "title", value: task.description)
-        ]
-        if let project = task.project, !project.isEmpty {
-            components.queryItems?.append(URLQueryItem(name: "project", value: project))
-        }
-        guard let url = components.url else {
+        guard let url = task.vimangoNoteURL else {
             return
         }
         UIApplication.shared.open(url) { opened in

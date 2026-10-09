@@ -118,6 +118,24 @@ final class TaskchampTests: XCTestCase {
         XCTAssertNil(TCTask.vimangoNoteTitle(fromAnnotation: "called the vimango: guy"))
     }
 
+    func test_vimangoNoteURL_carriesUUIDTitleAndProject() throws {
+        let uuid = "6f1c2a5e-0b7d-4c3e-9a8f-1d2e3f4a5b6c"
+        let title = "a & b = c + d? #x é/y"
+        func query(_ task: TCTask) throws -> [String: String] {
+            let url = try XCTUnwrap(task.vimangoNoteURL)
+            XCTAssertEqual(url.scheme, "vimango")
+            XCTAssertEqual(url.host, "task-note")
+            let items = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
+            return Dictionary(uniqueKeysWithValues: items.map { ($0.name, $0.value ?? "") })
+        }
+
+        let withProject = try query(TCTask(uuid: uuid, project: "home", description: title, status: .pending))
+        XCTAssertEqual(withProject, ["uuid": uuid, "title": title, "project": "home"])
+
+        let emptyProject = try query(TCTask(uuid: uuid, project: "", description: title, status: .pending))
+        XCTAssertEqual(emptyProject, ["uuid": uuid, "title": title])
+    }
+
     func test_vimangoNote_decodesAndEncodesAsOneAnnotation() throws {
         let json = """
         {"uuid": "u", "description": "Fix the gate", "status": "pending",

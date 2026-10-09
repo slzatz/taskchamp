@@ -130,6 +130,19 @@ extension TaskListView {
         return editMode.isEditing == true
     }
 
+    /// Opens an existing note in VimNotes. Notes are created from the edit screen,
+    /// which also adds the annotation that makes the row show the note button.
+    func openNote(_ task: TCTask) {
+        guard let url = task.vimangoNoteURL else {
+            return
+        }
+        UIApplication.shared.open(url) { opened in
+            if !opened {
+                isShowingNoteAlert = true
+            }
+        }
+    }
+
     func toggleStartStop(_ task: TCTask) {
         withAnimation {
             do {

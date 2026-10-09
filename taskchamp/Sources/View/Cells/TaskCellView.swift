@@ -3,6 +3,8 @@ import taskchampShared
 
 public struct TaskCellView: View {
     let task: TCTask
+    /// Opens the task's vimango note. When set and the task has a note, the row shows a note button.
+    var openNote: (() -> Void)?
 
     @AppStorage(TCUserDefaults.taskCellLineLimit.rawValue) private var lineLimit: Int = 1
 
@@ -38,6 +40,21 @@ public struct TaskCellView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
+                if task.hasNote, let openNote {
+                    Button(action: openNote) {
+                        Image(systemName: SFSymbols.noteOpen.rawValue)
+                            .font(.caption)
+                            .foregroundStyle(Color(asset: TaskchampAsset.Assets.accentColor))
+                            // A bigger target than the glyph, without making the row taller.
+                            .padding(.leading, 16)
+                            .padding(.vertical, 8)
+                            .contentShape(Rectangle())
+                            .padding(.vertical, -8)
+                    }
+                    // Takes its own tap instead of the row's NavigationLink.
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel("Open note")
+                }
             }
             if hasDetails {
                 HStack(spacing: 6) {
