@@ -7,6 +7,7 @@ public struct CreateTaskView: View, UseKeyboardToolbar {
     @Environment(GlobalState.self) var globalState: GlobalState
 
     var initialContent: String = ""
+    var defaultProject: String = ""
 
     @State private var nlpInput = ""
     @State private var nlpPlaceholder =
@@ -43,10 +44,10 @@ public struct CreateTaskView: View, UseKeyboardToolbar {
 
     func calculateNextField() {
         switch focusedField {
-        case .nlp:
-            focusedField = .description
         case .description:
-            focusedField = .description
+            focusedField = .nlp
+        case .nlp:
+            focusedField = .nlp
         default:
             focusedField = nil
         }
@@ -54,10 +55,10 @@ public struct CreateTaskView: View, UseKeyboardToolbar {
 
     func calculatePreviousField() {
         switch focusedField {
-        case .nlp:
-            focusedField = .nlp
         case .description:
-            focusedField = .nlp
+            focusedField = .description
+        case .nlp:
+            focusedField = .description
         default:
             focusedField = nil
         }
@@ -74,74 +75,6 @@ public struct CreateTaskView: View, UseKeyboardToolbar {
     public var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    TextEditor(text: $nlpInput)
-                        .font(.system(.body, design: .monospaced))
-                        .autocapitalization(.none)
-                        .autocorrectionDisabled()
-                        .focused($focusedField, equals: .nlp)
-                        .onChange(of: nlpInput) { _, input in
-                            let nlpTask = NLPService.shared.createTask(from: input)
-                            self.description = nlpTask.description
-                            self.project = nlpTask.project ?? ""
-                            self.priority = nlpTask.priority ?? .none
-                            self.tags = nlpTask.tags ?? []
-                            if let due = nlpTask.due {
-                                didSetDate = true
-                                didSetTime = true
-                                let calendar = Calendar.current
-                                let dateComponents = calendar.dateComponents([.year, .month, .day], from: due)
-                                let timeComponents = calendar.dateComponents([.hour, .minute, .second], from: due)
-                                self.due = calendar.date(from: dateComponents) ?? .init()
-                                time = calendar.date(from: timeComponents) ?? .init()
-                                isTimeShowing = false
-                            } else {
-                                didSetDate = false
-                                didSetTime = false
-                                isDateShowing = false
-                                isTimeShowing = false
-                                due = .init()
-                                time = .init()
-                            }
-                        }
-                        .onFirstAppear {
-                            if !initialContent.isEmpty {
-                                nlpInput = initialContent + " "
-                            }
-                            focusedField = .nlp
-                        }
-                } header: {
-                    HStack {
-                        Text("Command Line Input")
-                        Button {
-                            showNlpInfoPopover.toggle()
-                        } label: {
-                            Image(systemName: SFSymbols.questionmarkCircle.rawValue)
-                        }
-                        .popover(isPresented: $showNlpInfoPopover, attachmentAnchor: .point(.bottom)) {
-                            ScrollView {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    Text(
-                                        "Create a task via a command line input. The format is as follows:"
-                                    )
-                                    .padding(.top)
-                                    Text(nlpPlaceholder)
-                                        .font(.system(.body, design: .monospaced))
-                                    Text(
-                                        // swiftlint:disable:next line_length
-                                        "Manually updating the fields will override the values from the command line input."
-                                    )
-                                    .bold()
-                                    .padding(.bottom)
-                                }
-                            }
-                            .textCase(nil)
-                            .frame(minHeight: 150)
-                            .padding()
-                            .presentationCompactAdaptation(.popover)
-                        }
-                    }
-                }
                 Section {
                     TextEditor(text: $description)
                         .focused($focusedField, equals: .description)
@@ -181,7 +114,77 @@ public struct CreateTaskView: View, UseKeyboardToolbar {
                         showTagPopover = true
                     }
                 }
-            }.toolbar {
+                Section {
+                    TextEditor(text: $nlpInput)
+                        .font(.system(.body, design: .monospaced))
+                        .autocapitalization(.none)
+                        .autocorrectionDisabled()
+                        .focused($focusedField, equals: .nlp)
+                        .onChange(of: nlpInput) { _, input in
+                            let nlpTask = NLPService.shared.createTask(from: input)
+                            self.description = nlpTask.description
+                            self.project = nlpTask.project ?? defaultProject
+                            self.priority = nlpTask.priority ?? .none
+                            self.tags = nlpTask.tags ?? []
+                            if let due = nlpTask.due {
+                                didSetDate = true
+                                didSetTime = true
+                                let calendar = Calendar.current
+                                let dateComponents = calendar.dateComponents([.year, .month, .day], from: due)
+                                let timeComponents = calendar.dateComponents([.hour, .minute, .second], from: due)
+                                self.due = calendar.date(from: dateComponents) ?? .init()
+                                time = calendar.date(from: timeComponents) ?? .init()
+                                isTimeShowing = false
+                            } else {
+                                didSetDate = false
+                                didSetTime = false
+                                isDateShowing = false
+                                isTimeShowing = false
+                                due = .init()
+                                time = .init()
+                            }
+                        }
+                } header: {
+                    HStack {
+                        Text("Command Line Input")
+                        Button {
+                            showNlpInfoPopover.toggle()
+                        } label: {
+                            Image(systemName: SFSymbols.questionmarkCircle.rawValue)
+                        }
+                        .popover(isPresented: $showNlpInfoPopover, attachmentAnchor: .point(.bottom)) {
+                            ScrollView {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text(
+                                        "Create a task via a command line input. The format is as follows:"
+                                    )
+                                    .padding(.top)
+                                    Text(nlpPlaceholder)
+                                        .font(.system(.body, design: .monospaced))
+                                    Text(
+                                        // swiftlint:disable:next line_length
+                                        "Manually updating the fields will override the values from the command line input."
+                                    )
+                                    .bold()
+                                    .padding(.bottom)
+                                }
+                            }
+                            .textCase(nil)
+                            .frame(minHeight: 150)
+                            .padding()
+                            .presentationCompactAdaptation(.popover)
+                        }
+                    }
+                }
+            }
+            .onFirstAppear {
+                project = defaultProject
+                if !initialContent.isEmpty {
+                    nlpInput = initialContent + " "
+                }
+                focusedField = .description
+            }
+            .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Add") {
                         if description.isEmpty {

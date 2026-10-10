@@ -50,6 +50,44 @@ final class TaskchampTests: XCTestCase {
         XCTAssertEqual(filter.compactTitle, "whatever words")
     }
 
+    // MARK: - Required project
+
+    private func requiredProject(_ filter: String) -> String? {
+        TCFilter(fullDescription: filter).requiredProject
+    }
+
+    func test_requiredProject_singleProject() {
+        XCTAssertEqual(requiredProject("project:work"), "work")
+    }
+
+    func test_requiredProject_withOtherTerms() {
+        XCTAssertEqual(requiredProject("project:work +urgent status:pending"), "work")
+    }
+
+    func test_requiredProject_nestedAnd() {
+        XCTAssertEqual(requiredProject("(project:work +urgent) prio:H"), "work")
+    }
+
+    func test_requiredProject_orOfProjects() {
+        XCTAssertNil(requiredProject("project:work or project:home"))
+    }
+
+    func test_requiredProject_orWithOtherTerm() {
+        XCTAssertNil(requiredProject("project:work or +urgent"))
+    }
+
+    func test_requiredProject_conflictingProjects() {
+        XCTAssertNil(requiredProject("project:work project:home"))
+    }
+
+    func test_requiredProject_emptyProject() {
+        XCTAssertNil(requiredProject("project: +urgent"))
+    }
+
+    func test_requiredProject_defaultFilter() {
+        XCTAssertNil(TCFilter.defaultFilter.requiredProject)
+    }
+
     // MARK: - Date filters
 
     private let now: Date = {

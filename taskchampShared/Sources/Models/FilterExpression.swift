@@ -70,6 +70,24 @@ public indirect enum FilterExpression {
         }
     }
 
+    /// The project every matching task must have, e.g. `project:work +urgent` → `work`.
+    /// `nil` when the filter allows more than one project (`project:a or project:b`) or none.
+    public var requiredProject: String? {
+        let projects = Set(requiredProjects)
+        return projects.count == 1 ? projects.first : nil
+    }
+
+    private var requiredProjects: [String] {
+        switch self {
+        case let .project(name):
+            return name.isEmpty ? [] : [name]
+        case let .and(expressions):
+            return expressions.flatMap(\.requiredProjects)
+        default:
+            return []
+        }
+    }
+
     func containsStatus(_ status: TCTask.Status) -> Bool {
         switch self {
         case let .status(taskStatus):

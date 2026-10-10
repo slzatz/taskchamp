@@ -63,6 +63,11 @@ public class TCFilter: Codable {
         return filterExpression?.compactDescription ?? fullDescription
     }
 
+    /// The project a new task should default to while this filter is selected.
+    public var requiredProject: String? {
+        filterExpression?.requiredProject
+    }
+
     public var realDue: Date? {
         return didSetDue ? due : nil
     }

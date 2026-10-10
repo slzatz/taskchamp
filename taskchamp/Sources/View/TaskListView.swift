@@ -329,7 +329,10 @@ public struct TaskListView: View {
             createTaskContent = ""
             updateTasks()
         }, content: {
-            CreateTaskView(initialContent: createTaskContent)
+            CreateTaskView(
+                initialContent: createTaskContent,
+                defaultProject: selectedFilter.requiredProject ?? ""
+            )
         })
         .sheet(isPresented: $isShowingFilterView) {
             AddFilterView(selectedFilter: $selectedFilter)
