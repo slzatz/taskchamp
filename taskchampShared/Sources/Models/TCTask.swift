@@ -125,7 +125,7 @@ public struct TCTask: Codable, Hashable {
             self.entry = Date(timeIntervalSince1970: timeInterval)
         }
 
-        vimangoNote = annotations.lazy.compactMap(Self.vimangoNoteTitle(fromAnnotation:)).first
+        hasNote = annotations.contains(Self.vimangoNoteAnnotation)
 
         self.tags = tags.isEmpty ? nil : tags
         appendSwiftSyntheticTags(hasAnnotations: !annotations.isEmpty)
@@ -148,18 +148,16 @@ public struct TCTask: Codable, Hashable {
         entry = try Self.decodeDate(from: container, forKey: .entry)
         // Decode dynamic keys for annotations
         let dynamicContainer = try decoder.container(keyedBy: DynamicCodingKey.self)
-        var vimangoNoteValue: String?
         var noteAnnotationKey: String?
 
         for key in dynamicContainer.allKeys where key.stringValue.starts(with: "annotation_") {
             let annotationValue = try dynamicContainer.decode(String.self, forKey: key)
-            if let title = Self.vimangoNoteTitle(fromAnnotation: annotationValue) {
+            if annotationValue == Self.vimangoNoteAnnotation {
                 noteAnnotationKey = key.stringValue
-                vimangoNoteValue = title
                 break
             }
         }
-        vimangoNote = vimangoNoteValue
+        hasNote = noteAnnotationKey != nil
         self.noteAnnotationKey = noteAnnotationKey
     }
 
@@ -182,10 +180,10 @@ public struct TCTask: Codable, Hashable {
         var dynamicContainer = encoder.container(keyedBy: DynamicCodingKey.self)
 
         // Add the vimango note as a dynamic annotation
-        if let vimangoNoteAnnotation {
+        if hasNote {
             let key = noteAnnotationKey ?? "annotation_\(Int(Date().timeIntervalSince1970.rounded()))"
             if let dynamicKey = DynamicCodingKey(stringValue: key) {
-                try dynamicContainer.encode(vimangoNoteAnnotation, forKey: dynamicKey)
+                try dynamicContainer.encode(Self.vimangoNoteAnnotation, forKey: dynamicKey)
             }
         }
     }
@@ -216,7 +214,7 @@ public struct TCTask: Codable, Hashable {
         status: Status,
         priority: Priority? = nil,
         due: Date? = nil,
-        vimangoNote: String? = nil,
+        hasNote: Bool = false,
         noteAnnotationKey: String? = nil,
         tags: [TCTag]? = nil,
         recur: String? = nil
@@ -227,7 +225,7 @@ public struct TCTask: Codable, Hashable {
         self.status = status
         self.priority = priority
         self.due = due
-        self.vimangoNote = vimangoNote
+        self.hasNote = hasNote
         self.noteAnnotationKey = noteAnnotationKey
         self.tags = tags
         self.recur = recur
@@ -242,9 +240,9 @@ public struct TCTask: Codable, Hashable {
     public var status: Status
     public var priority: Priority?
     public var due: Date?
-    /// The title of the task's vimango note, from a `vimango: <title>` annotation.
+    /// Whether the task has a vimango note, from a `vimango` annotation.
     /// VimNotes finds the note by the task's uuid, so this only says one exists.
-    public var vimangoNote: String?
+    public var hasNote: Bool
     public var noteAnnotationKey: String?
     public var tags: [TCTag]?
     public var recur: String?
@@ -254,21 +252,8 @@ public struct TCTask: Codable, Hashable {
     public var end: Date?
     public var entry: Date?
 
-    public static let vimangoNotePrefix = "vimango: "
-
-    public static func vimangoNoteTitle(fromAnnotation annotation: String) -> String? {
-        guard annotation.hasPrefix(vimangoNotePrefix) else {
-            return nil
-        }
-        return String(annotation.dropFirst(vimangoNotePrefix.count))
-    }
-
-    public var vimangoNoteAnnotation: String? {
-        guard let vimangoNote else {
-            return nil
-        }
-        return Self.vimangoNotePrefix + vimangoNote
-    }
+    /// The annotation that marks a task as having a vimango note.
+    public static let vimangoNoteAnnotation = "vimango"
 
     public var rustTags: [Tag?]? {
         guard let tags, !tags.isEmpty else {
@@ -309,10 +294,6 @@ public struct TCTask: Codable, Hashable {
 
     public var isDeleted: Bool {
         status == .deleted
-    }
-
-    public var hasNote: Bool {
-        vimangoNote != nil
     }
 
     public var isRecurring: Bool {

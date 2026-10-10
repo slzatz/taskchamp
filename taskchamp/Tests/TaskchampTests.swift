@@ -112,12 +112,6 @@ final class TaskchampTests: XCTestCase {
         ])
     }
 
-    func test_vimangoNoteTitle_onlyFromVimangoAnnotations() {
-        XCTAssertEqual(TCTask.vimangoNoteTitle(fromAnnotation: "vimango: Fix the gate"), "Fix the gate")
-        XCTAssertNil(TCTask.vimangoNoteTitle(fromAnnotation: "task-note: Fix-the-gate"))
-        XCTAssertNil(TCTask.vimangoNoteTitle(fromAnnotation: "called the vimango: guy"))
-    }
-
     func test_vimangoNoteURL_carriesUUIDTitleAndProject() throws {
         let uuid = "6f1c2a5e-0b7d-4c3e-9a8f-1d2e3f4a5b6c"
         let title = "a & b = c + d? #x é/y"
@@ -139,10 +133,10 @@ final class TaskchampTests: XCTestCase {
     func test_vimangoNote_decodesAndEncodesAsOneAnnotation() throws {
         let json = """
         {"uuid": "u", "description": "Fix the gate", "status": "pending",
-         "annotation_1700000000": "vimango: Gate", "annotation_1700000001": "called the plumber"}
+         "annotation_1700000000": "vimango", "annotation_1700000001": "called the plumber"}
         """
         let task = try JSONDecoder().decode(TCTask.self, from: Data(json.utf8))
-        XCTAssertEqual(task.vimangoNote, "Gate")
+        XCTAssertTrue(task.hasNote)
         XCTAssertEqual(task.noteAnnotationKey, "annotation_1700000000")
 
         let encoded = try XCTUnwrap(
@@ -150,7 +144,17 @@ final class TaskchampTests: XCTestCase {
         )
         let annotations = encoded.filter { $0.key.hasPrefix("annotation_") }
         XCTAssertEqual(annotations.count, 1)
-        XCTAssertEqual(annotations["annotation_1700000000"] as? String, "vimango: Gate")
+        XCTAssertEqual(annotations["annotation_1700000000"] as? String, "vimango")
+    }
+
+    func test_vimangoNote_onlyFromTheExactAnnotation() throws {
+        let json = """
+        {"uuid": "u", "description": "Fix the gate", "status": "pending",
+         "annotation_1700000000": "called the vimango guy", "annotation_1700000001": "vimango: Gate"}
+        """
+        let task = try JSONDecoder().decode(TCTask.self, from: Data(json.utf8))
+        XCTAssertFalse(task.hasNote)
+        XCTAssertNil(task.noteAnnotationKey)
     }
 
     /// What `PathStore` would need to restore a task screen: every field the
@@ -166,7 +170,7 @@ final class TaskchampTests: XCTestCase {
             status: .pending,
             priority: .high,
             due: date(1_800_000_000),
-            vimangoNote: "Gate",
+            hasNote: true,
             tags: [TCTag(name: "outside")],
             recur: "weekly"
         )
@@ -185,7 +189,7 @@ final class TaskchampTests: XCTestCase {
         XCTAssertEqual(decoded.priority, .high)
         XCTAssertEqual(decoded.recur, "weekly")
         XCTAssertEqual(decoded.tags?.map(\.name), ["outside"])
-        XCTAssertEqual(decoded.vimangoNote, "Gate")
+        XCTAssertTrue(decoded.hasNote)
         XCTAssertEqual(decoded.due, task.due)
         XCTAssertEqual(decoded.scheduled, task.scheduled)
         XCTAssertEqual(decoded.until, task.until)

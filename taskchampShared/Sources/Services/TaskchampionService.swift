@@ -282,15 +282,15 @@ public class TaskchampionService {
         }
     }
 
-    /// Records that the task has a vimango note, as a `vimango: <title>` annotation.
+    /// Records that the task has a vimango note, as a `vimango` annotation.
     /// Does nothing if the task already has that exact annotation.
-    public func linkVimangoNote(uuid: String, title: String, onSync: @escaping () -> Void = {}) throws {
+    public func linkVimangoNote(uuid: String, onSync: @escaping () -> Void = {}) throws {
         guard let replica else {
             throw TCError.genericError("Database not set")
         }
         let task = replica.annotate_task(
             uuid.intoRustString(),
-            (TCTask.vimangoNotePrefix + title).intoRustString()
+            TCTask.vimangoNoteAnnotation.intoRustString()
         )
         if task == nil {
             throw TCError.genericError("Failed to annotate task")

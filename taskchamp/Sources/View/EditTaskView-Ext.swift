@@ -47,7 +47,7 @@ extension EditTaskView {
                 return
             }
             do {
-                try TaskchampionService.shared.linkVimangoNote(uuid: task.uuid, title: task.description)
+                try TaskchampionService.shared.linkVimangoNote(uuid: task.uuid)
                 task = try TaskchampionService.shared.getTask(uuid: task.uuid)
             } catch {
                 isShowingAlert = true
