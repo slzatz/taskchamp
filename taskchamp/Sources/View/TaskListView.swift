@@ -331,7 +331,9 @@ public struct TaskListView: View {
         }, content: {
             CreateTaskView(
                 request: createTaskRequest,
-                defaultProject: createTaskRequest.project ?? selectedFilter.requiredProject ?? ""
+                // A note's task takes only the note's own context, never the filter's.
+                defaultProject: createTaskRequest.project
+                    ?? (createTaskRequest.noteTaskUUID == nil ? selectedFilter.requiredProject : nil) ?? ""
             )
         })
         .sheet(isPresented: $isShowingFilterView) {
