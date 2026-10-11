@@ -13,7 +13,7 @@ public struct TaskListView: View {
     @Binding var selectedFilter: TCFilter
     @Binding var selectedSyncType: TaskchampionService.SyncType?
     @Binding var isShowingCreateTaskView: Bool
-    @Binding var createTaskContent: String
+    @Binding var createTaskRequest: NewTaskRequest
 
     @Query(sort: \TCFilter.order) var allFilters: [TCFilter]
 
@@ -36,13 +36,13 @@ public struct TaskListView: View {
         selectedFilter: Binding<TCFilter>,
         selectedSyncType: Binding<TaskchampionService.SyncType?>,
         isShowingCreateTaskView: Binding<Bool>,
-        createTaskContent: Binding<String>
+        createTaskRequest: Binding<NewTaskRequest>
     ) {
         _isShowingICloudAlert = isShowingICloudAlert
         _selectedFilter = selectedFilter
         _selectedSyncType = selectedSyncType
         _isShowingCreateTaskView = isShowingCreateTaskView
-        _createTaskContent = createTaskContent
+        _createTaskRequest = createTaskRequest
     }
 
     private func sortButton(sortType: TasksHelper.TCSortType) -> some View {
@@ -326,12 +326,12 @@ public struct TaskListView: View {
             }
         }
         .sheet(isPresented: $isShowingCreateTaskView, onDismiss: {
-            createTaskContent = ""
+            createTaskRequest = NewTaskRequest()
             updateTasks()
         }, content: {
             CreateTaskView(
-                initialContent: createTaskContent,
-                defaultProject: selectedFilter.requiredProject ?? ""
+                request: createTaskRequest,
+                defaultProject: createTaskRequest.project ?? selectedFilter.requiredProject ?? ""
             )
         })
         .sheet(isPresented: $isShowingFilterView) {

@@ -168,6 +168,36 @@ final class TaskchampTests: XCTestCase {
         XCTAssertEqual(emptyProject, ["uuid": uuid, "title": title])
     }
 
+    func test_newTaskRequest_fromNoteLink() throws {
+        let url = try XCTUnwrap(URL(
+            string: "taskchampdev://task/new?uuid=6F1D3A2C-9B4E-4C1A-8E2F-0A1B2C3D4E5F&title=Plan%20due:friday%20%2Btrip&project=Home"
+        ))
+        let request = NewTaskRequest(url: url)
+        XCTAssertEqual(request.noteTaskUUID, "6f1d3a2c-9b4e-4c1a-8e2f-0a1b2c3d4e5f")
+        XCTAssertEqual(request.description, "Plan due:friday +trip")
+        XCTAssertEqual(request.project, "Home")
+        XCTAssertEqual(request.content, "")
+        XCTAssertFalse(request.isEmpty)
+    }
+
+    func test_newTaskRequest_contentOnlyAndBadUUID() throws {
+        let content = NewTaskRequest(url: try XCTUnwrap(URL(string: "taskchamp://task/new?content=Buy%20milk")))
+        XCTAssertEqual(content, NewTaskRequest(content: "Buy milk"))
+
+        let bad = NewTaskRequest(url: try XCTUnwrap(URL(string: "taskchampdev://task/new?uuid=nope&project=%20")))
+        XCTAssertNil(bad.noteTaskUUID)
+        XCTAssertNil(bad.project)
+        XCTAssertTrue(bad.isEmpty)
+    }
+
+    func test_newTaskRequest_projectMatchesIgnoringCase() {
+        var request = NewTaskRequest()
+        XCTAssertNil(request.project(among: ["home"]))
+        request.project = "Home"
+        XCTAssertEqual(request.project(among: ["work", "home"]), "home")
+        XCTAssertEqual(request.project(among: ["work"]), "Home")
+    }
+
     func test_vimangoNote_decodesAndEncodesAsOneAnnotation() throws {
         let json = """
         {"uuid": "u", "description": "Fix the gate", "status": "pending",

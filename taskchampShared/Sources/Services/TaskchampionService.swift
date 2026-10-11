@@ -313,7 +313,7 @@ public class TaskchampionService {
         let due = task.due?.timeIntervalSince1970.rounded()
         let dueString = due != nil ? String(Int(due ?? 0)) : nil
 
-        let task = replica.create_task(
+        let created = replica.create_task(
             task.uuid.intoRustString(),
             task.description.intoRustString(),
             dueString?.intoRustString(),
@@ -321,8 +321,13 @@ public class TaskchampionService {
             task.project?.intoRustString(),
             task.rustVecOfTags
         )
-        if task == nil {
+        if created == nil {
             throw TCError.genericError("Failed to create task")
+        }
+        // A task created from a vimango note. The task exists either way, so a
+        // failed annotation only costs the note button its label.
+        if task.hasNote {
+            _ = replica.annotate_task(task.uuid.intoRustString(), TCTask.vimangoNoteAnnotation.intoRustString())
         }
 
         _ = replica.sync_no_server() // rebuild the working set

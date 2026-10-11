@@ -6,7 +6,7 @@ public struct CreateTaskView: View, UseKeyboardToolbar {
     @Environment(\.dismiss) var dismiss
     @Environment(GlobalState.self) var globalState: GlobalState
 
-    var initialContent: String = ""
+    var request = NewTaskRequest()
     var defaultProject: String = ""
 
     @State private var nlpInput = ""
@@ -84,6 +84,10 @@ public struct CreateTaskView: View, UseKeyboardToolbar {
                     }
                 } header: {
                     Text("Description")
+                } footer: {
+                    if request.noteTaskUUID != nil {
+                        Text("Linked to the vimango note this was started from.")
+                    }
                 }
                 Section {
                     FormDateToggleButton(
@@ -179,8 +183,9 @@ public struct CreateTaskView: View, UseKeyboardToolbar {
             }
             .onFirstAppear {
                 project = defaultProject
-                if !initialContent.isEmpty {
-                    nlpInput = initialContent + " "
+                description = request.description
+                if !request.content.isEmpty {
+                    nlpInput = request.content + " "
                 }
                 focusedField = .description
             }
@@ -201,12 +206,13 @@ public struct CreateTaskView: View, UseKeyboardToolbar {
                         let finalDate = Calendar.current.mergeDateWithTime(date: date, time: time)
 
                         let task = TCTask(
-                            uuid: UUID().uuidString,
+                            uuid: request.noteTaskUUID ?? UUID().uuidString,
                             project: project.isEmpty ? nil : project,
                             description: description,
                             status: status,
                             priority: priority == .none ? nil : priority,
                             due: finalDate,
+                            hasNote: request.noteTaskUUID != nil,
                             tags: tags.isEmpty ? nil : tags
                         )
 

@@ -18,7 +18,7 @@ public struct ContentView: View {
     @State private var selectedSyncType: TaskchampionService.SyncType?
     @State private var isShowingSyncServiceModal = false
     @State var isShowingCreateTaskView = false
-    @State var createTaskContent = ""
+    @State var createTaskRequest = NewTaskRequest()
 
     public init() {
         UINavigationBar.appearance().largeTitleTextAttributes = [.foregroundColor: UIColor.tintColor]
@@ -73,21 +73,28 @@ public struct ContentView: View {
             let uuidString = url.pathComponents[1]
 
             if uuidString == "new" {
+                var request = NewTaskRequest(url: url)
                 if
-                    let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-                    let contentParam = components.queryItems?.first(where: { $0.name == "content" })?.value,
-                    !contentParam.isEmpty
-                {
-                    createTaskContent = contentParam
-                } else if
+                    request.isEmpty,
                     let pending: String = UserDefaultsManager.standard.getValue(forKey: .pendingNewTaskContent),
                     !pending.isEmpty
                 {
-                    createTaskContent = pending
-                } else {
-                    createTaskContent = ""
+                    request.content = pending
                 }
                 UserDefaultsManager.standard.remove(forKey: .pendingNewTaskContent)
+                // A repeated link from a note whose task exists: open it rather
+                // than fail to create a duplicate.
+                if
+                    let uuid = request.noteTaskUUID,
+                    let task = try? TaskchampionService.shared.getTask(uuid: uuid)
+                {
+                    pathStore.path.append(task)
+                    return
+                }
+                if request.project != nil {
+                    request.project = request.project(among: TaskchampionService.shared.getAllProjects())
+                }
+                createTaskRequest = request
                 isShowingCreateTaskView = true
                 return
             }
@@ -108,7 +115,7 @@ public struct ContentView: View {
                 selectedFilter: $selectedFilter,
                 selectedSyncType: $selectedSyncType,
                 isShowingCreateTaskView: $isShowingCreateTaskView,
-                createTaskContent: $createTaskContent
+                createTaskRequest: $createTaskRequest
             )
         }
         .onOpenURL { url in
