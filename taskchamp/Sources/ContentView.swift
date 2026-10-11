@@ -17,8 +17,8 @@ public struct ContentView: View {
     @State private var selectedFilter: TCFilter = .defaultFilter
     @State private var selectedSyncType: TaskchampionService.SyncType?
     @State private var isShowingSyncServiceModal = false
-    @State var isShowingCreateTaskView = false
-    @State var createTaskRequest = NewTaskRequest()
+    /// The create sheet's request; nil while the sheet is closed.
+    @State var createTaskRequest: NewTaskRequest?
 
     public init() {
         UINavigationBar.appearance().largeTitleTextAttributes = [.foregroundColor: UIColor.tintColor]
@@ -95,7 +95,6 @@ public struct ContentView: View {
                     request.project = request.project(among: TaskchampionService.shared.getAllProjects())
                 }
                 createTaskRequest = request
-                isShowingCreateTaskView = true
                 return
             }
 
@@ -114,7 +113,6 @@ public struct ContentView: View {
                 isShowingICloudAlert: $isShowingAlert,
                 selectedFilter: $selectedFilter,
                 selectedSyncType: $selectedSyncType,
-                isShowingCreateTaskView: $isShowingCreateTaskView,
                 createTaskRequest: $createTaskRequest
             )
         }

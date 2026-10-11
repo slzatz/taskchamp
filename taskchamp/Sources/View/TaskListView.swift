@@ -12,8 +12,7 @@ public struct TaskListView: View {
     @Binding var isShowingICloudAlert: Bool
     @Binding var selectedFilter: TCFilter
     @Binding var selectedSyncType: TaskchampionService.SyncType?
-    @Binding var isShowingCreateTaskView: Bool
-    @Binding var createTaskRequest: NewTaskRequest
+    @Binding var createTaskRequest: NewTaskRequest?
 
     @Query(sort: \TCFilter.order) var allFilters: [TCFilter]
 
@@ -35,13 +34,11 @@ public struct TaskListView: View {
         isShowingICloudAlert: Binding<Bool>,
         selectedFilter: Binding<TCFilter>,
         selectedSyncType: Binding<TaskchampionService.SyncType?>,
-        isShowingCreateTaskView: Binding<Bool>,
-        createTaskRequest: Binding<NewTaskRequest>
+        createTaskRequest: Binding<NewTaskRequest?>
     ) {
         _isShowingICloudAlert = isShowingICloudAlert
         _selectedFilter = selectedFilter
         _selectedSyncType = selectedSyncType
-        _isShowingCreateTaskView = isShowingCreateTaskView
         _createTaskRequest = createTaskRequest
     }
 
@@ -156,7 +153,7 @@ public struct TaskListView: View {
                         )
                     } actions: {
                         Button("New task") {
-                            isShowingCreateTaskView.toggle()
+                            createTaskRequest = NewTaskRequest()
                         }
                         .buttonStyle(.borderedProminent)
                     }
@@ -191,7 +188,7 @@ public struct TaskListView: View {
                     ToolbarSpacer(.fixed, placement: .bottomBar)
                     ToolbarItem(placement: .bottomBar) {
                         Button {
-                            isShowingCreateTaskView.toggle()
+                            createTaskRequest = NewTaskRequest()
                         } label: {
                             Label(
                                 "New Task",
@@ -231,7 +228,7 @@ public struct TaskListView: View {
                     if #unavailable(iOS 26.0) {
                         HStack {
                             Button {
-                                isShowingCreateTaskView.toggle()
+                                createTaskRequest = NewTaskRequest()
                             } label: {
                                 Label(
                                     "New Task",
@@ -325,15 +322,17 @@ public struct TaskListView: View {
                 updateTasks()
             }
         }
-        .sheet(isPresented: $isShowingCreateTaskView, onDismiss: {
-            createTaskRequest = NewTaskRequest()
+        // `item:`, not `isPresented:`, so the sheet is built from the request it
+        // was opened with. With `isPresented:` a deep link's request, set in the
+        // same update that opened the sheet, arrived empty.
+        .sheet(item: $createTaskRequest, onDismiss: {
             updateTasks()
-        }, content: {
+        }, content: { request in
             CreateTaskView(
-                request: createTaskRequest,
+                request: request,
                 // A note's task takes only the note's own context, never the filter's.
-                defaultProject: createTaskRequest.project
-                    ?? (createTaskRequest.noteTaskUUID == nil ? selectedFilter.requiredProject : nil) ?? ""
+                defaultProject: request.project
+                    ?? (request.noteTaskUUID == nil ? selectedFilter.requiredProject : nil) ?? ""
             )
         })
         .sheet(isPresented: $isShowingFilterView) {

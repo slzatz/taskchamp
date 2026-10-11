@@ -5,9 +5,9 @@ import Foundation
 /// `content` is command-line input, parsed like typed text (widgets, Shortcuts).
 /// The other fields come from VimNotes' "Create task" button on a note:
 /// `taskchampdev://task/new?uuid=<uuid>&title=<note title>&project=<context>`.
-/// VimNotes picks the uuid and has already written it into the note's
-/// frontmatter, so creating the task with that uuid is what links the two.
-public struct NewTaskRequest: Equatable {
+/// VimNotes picks the uuid and writes it into the note's frontmatter, so
+/// creating the task with that uuid is what links the two.
+public struct NewTaskRequest: Hashable, Identifiable {
     public var content = ""
     /// The description, taken literally rather than parsed, since a note title
     /// may contain words like `due:` or `+tag`.
@@ -15,6 +15,9 @@ public struct NewTaskRequest: Equatable {
     public var project: String?
     /// The uuid of the vimango note's task, lowercased like taskchampion's own.
     public var noteTaskUUID: String?
+
+    /// The request itself, for `.sheet(item:)`.
+    public var id: Self { self }
 
     public init(content: String = "") {
         self.content = content
