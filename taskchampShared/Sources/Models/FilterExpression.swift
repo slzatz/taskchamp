@@ -110,8 +110,8 @@ enum FilterToken: Equatable {
     case tag(String)
     case notTag(String)
     case project(String)
-    case priority(String)
-    case status(String)
+    case priority(TCTask.Priority)
+    case status(TCTask.Status)
     case recur
     case date(FilterDateAttribute, FilterDateComparison, FilterDate)
 }
@@ -184,11 +184,11 @@ public enum FilterParser {
         case _ where word.hasPrefix("project:"):
             return .project(String(word.dropFirst("project:".count)))
         case _ where word.hasPrefix("prio:"):
-            return .priority(String(word.dropFirst("prio:".count)))
+            return priority(from: String(word.dropFirst("prio:".count))).map { .priority($0) }
         case _ where word.hasPrefix("priority:"):
-            return .priority(String(word.dropFirst("priority:".count)))
+            return priority(from: String(word.dropFirst("priority:".count))).map { .priority($0) }
         case _ where word.hasPrefix("status:"):
-            return .status(String(word.dropFirst("status:".count)))
+            return TCTask.Status(rawValue: word.dropFirst("status:".count).lowercased()).map { .status($0) }
         case _ where word.lowercased() == "recur":
             return .recur
         case _ where word.hasPrefix("+"):
@@ -200,6 +200,14 @@ public enum FilterParser {
         default:
             return dateToken(for: word)
         }
+    }
+
+    /// `H`, `M`, `L`, or no priority: `None`, or an empty value as in Taskwarrior's `priority:`.
+    private static func priority(from value: String) -> TCTask.Priority? {
+        if value.isEmpty || value.lowercased() == "none" {
+            return TCTask.Priority.none
+        }
+        return TCTask.Priority(rawValue: value.uppercased())
     }
 
     /// `<attribute>.<after|before|above|below>:<date>`, e.g. `end.after:now-1wk`.
@@ -285,13 +293,11 @@ public enum FilterParser {
         case let .project(value):
             index += 1
             return .project(value)
-        case let .priority(value):
+        case let .priority(prio):
             index += 1
-            guard let prio = TCTask.Priority(rawValue: value) else { return nil }
             return .priority(prio)
-        case let .status(value):
+        case let .status(status):
             index += 1
-            guard let status = TCTask.Status(rawValue: value) else { return nil }
             return .status(status)
         case .recur:
             index += 1

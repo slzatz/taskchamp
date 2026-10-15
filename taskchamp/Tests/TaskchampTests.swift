@@ -148,6 +148,26 @@ final class TaskchampTests: XCTestCase {
         XCTAssertEqual(FilterParser.unrecognizedTerms(in: "project:work due:today end.after:bogus"), [
             "due:today", "end.after:bogus"
         ])
+        XCTAssertEqual(FilterParser.unrecognizedTerms(in: "prio:X status:foo +ok prio: status:Pending"), [
+            "prio:X", "status:foo"
+        ])
+    }
+
+    func test_noPriority_matchesOnlyUnprioritizedTasks() {
+        let unprioritized = TCTask(uuid: UUID().uuidString, project: "", description: "t", status: .pending)
+        let high = TCTask(
+            uuid: UUID().uuidString,
+            project: "",
+            description: "t",
+            status: .pending,
+            priority: .high
+        )
+        for filter in ["status:pending prio:", "status:pending priority:", "prio:none status:pending", "prio:None"] {
+            XCTAssertTrue(matches(filter, unprioritized), filter)
+            XCTAssertFalse(matches(filter, high), filter)
+        }
+        XCTAssertTrue(matches("prio:h", high))
+        XCTAssertEqual(compact("status:pending prio:"), "pending no prio")
     }
 
     func test_vimangoNoteURL_carriesUUIDTitleAndProject() throws {

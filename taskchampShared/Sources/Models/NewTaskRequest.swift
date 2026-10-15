@@ -17,7 +17,9 @@ public struct NewTaskRequest: Hashable, Identifiable {
     public var noteTaskUUID: String?
 
     /// The request itself, for `.sheet(item:)`.
-    public var id: Self { self }
+    public var id: Self {
+        self
+    }
 
     public init(content: String = "") {
         self.content = content

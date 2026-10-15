@@ -14,7 +14,8 @@ public struct AddFilterView: View, UseKeyboardToolbar {
     @State var showNlpInfoPopover = false
     @State var nlpInput = ""
     @State var nlpPlaceholder =
-        "project:my-project prio:M status:pending +tag -tag\n(project:A or project:B) +urgent"
+        "project:my-project prio:M status:pending +tag -tag\n(project:A or project:B) +urgent\n" +
+        "status:pending prio:   (no priority)"
 
     @State var isShowingAlert = false
     @State var alertTitle = ""
