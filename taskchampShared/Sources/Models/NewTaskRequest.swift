@@ -5,8 +5,9 @@ import Foundation
 /// `content` is command-line input, parsed like typed text (widgets, Shortcuts).
 /// The other fields come from VimNotes' "Create task" button on a note:
 /// `taskchampdev://task/new?uuid=<uuid>&title=<note title>&project=<context>`.
-/// VimNotes picks the uuid and writes it into the note's frontmatter, so
-/// creating the task with that uuid is what links the two.
+/// VimNotes picks the uuid and stores it as the note's link (its synced
+/// `taskwarrior_uuid` column), so creating the task with that uuid is what
+/// links the two.
 public struct NewTaskRequest: Hashable, Identifiable {
     public var content = ""
     /// The description, taken literally rather than parsed, since a note title

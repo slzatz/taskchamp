@@ -216,7 +216,7 @@ Relative dates are recalculated every time the filter runs, so `status:completed
 A task's long notes live in [vimango](https://github.com/slzatz/vimango), through the VimNotes iOS app (`~/vimango_ios`). Taskchamp never reads or writes a vimango database.
 
 1. Open a task and tap **Create vimango note** at the bottom of the screen.
-2. VimNotes opens and creates the note in context "none" and folder "none", then opens it in the editor. Its frontmatter holds the task's uuid (`taskwarrior: <uuid>`), followed by an "Open task in Taskchamp" link (`taskchampdev://task/<uuid>`).
+2. VimNotes opens and creates the note in context "none" and folder "none", then opens it in the editor. The note is linked to the task by the task's uuid, which vimango stores alongside the note rather than in its text, so the note starts empty. The note's task button opens the task again.
 3. Taskchamp adds a `vimango: <title>` annotation to the task, and the button becomes **Open vimango note**.
 
-VimNotes finds the note by the uuid in its frontmatter, so renaming the note doesn't break the link. The note reaches the vimango server on VimNotes' next sync.
+VimNotes finds the note by that uuid, so renaming or editing the note doesn't break the link. The note reaches the vimango server on VimNotes' next sync.
