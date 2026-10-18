@@ -172,7 +172,9 @@ Project, priority and tags are all hidden when pinned (user decision).
 - **Tests:** next to the existing `test_requiredProject_*` cases (which still hold): `(project:a or project:a)` pins a, `(project:a +x) or (project:a +y)` pins a, `(project:a or project:b)` pins nothing. `prio:H +x` pins H. `+a or +b` requires nothing, and `(+a +b) or (+a +c)` requires a. The default filter pins nothing.
 - Search doesn't change the pins. It narrows the list, but it doesn't guarantee a project.
 
-## 2. One-line rows
+## 2. One-line rows — DONE (2026-10-18), awaiting on-device check
+
+Implemented as written, with row padding 7 (VimNotes') and `defaultMinListRowHeight` 1. In the simulator, rows are about 36pt apart, and "Max lines per task" = 3 wraps long descriptions in the left column with the details on the first line. Rows with badges come out about 1.3pt taller than rows without, because a badge is slightly taller than the 14pt line. Still to check on the phone: edit mode, the note button's tap area, and swipes. VimNotes has no connection set up in the simulator, so the heights haven't been compared side by side.
 
 Follow the VimNotes row, adapted to what a task shows:
 
@@ -205,7 +207,12 @@ Description ▶ ↻ ……………  [work] [H] [tag] [tag2]  Oct 21 3:00 PM  �
 - **Seeding settings:** `xcrun simctl spawn … defaults write <bundle id>` lands in the simulator-wide preferences file, which the app reads but never writes, so a test can pass for the wrong reason. Write test values into the app container's `Library/Preferences/<bundle id>.plist` instead, or for the app group into the group container's plist, as the Round 1 sync setup does.
 - **Menus:** they can't be opened from the command line, so the user checks the menus on the phone.
 
-## Decisions (user, 2026-10-18)
+## Follow-ups found while verifying item 1 (2026-10-18, not yet fixed)
+
+The user wants to come back to these after Round 4.
+
+- **Long filter titles overlap the header.** With `(project:fact +correct) or (project:fact +memory)`, the header's `fact +correct | fact +memory` runs over the DEV badge and the Edit button instead of truncating. The principal `headerView` (`filterSwitcherMenu`) isn't limited to the space between the toolbar buttons.
+- **A filter matching nothing showed a blank list.** With `status:pending project:work +work`, the screen had no rows and no "No tasks found" overlay. The overlay needs `tasks.isEmpty && !rebuildingCache`. The screenshot was taken about 9 s after launch, possibly before the first sync finished, so check whether it ever appears.
 
 1. **Tags:** show all of them. The user has few tags.
 2. **Due time:** show it for every task that has one, so the date column has no fixed width (see item 2).

@@ -96,6 +96,8 @@ public struct TaskListView: View {
                 NavigationLink(value: task) {
                     TaskCellView(task: task, openNote: isEditModeActive ? nil : { openNote(task) }, pins: pins)
                 }
+                // The chevron's width goes to the description instead.
+                .navigationLinkIndicatorVisibility(.hidden)
                 .if(task.status != .deleted) {
                     $0.swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button {
@@ -173,6 +175,8 @@ public struct TaskListView: View {
             $0.searchable(text: $searchText)
         }
         .listStyle(.inset)
+        // Otherwise iOS 26 pads every row up to about 52pt, and one-line rows don't get shorter.
+        .environment(\.defaultMinListRowHeight, 1)
         // Same dark gray as vimango's list rows in dark mode (white in light mode).
         .scrollContentBackground(.hidden)
         .background(Color(.secondarySystemGroupedBackground))
