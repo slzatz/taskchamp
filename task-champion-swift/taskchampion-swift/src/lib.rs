@@ -3,6 +3,18 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::path::PathBuf;
 use taskchampion::{self as tc, chrono::Utc};
 
+// Shadows std's eprintln!, which panics when stderr can't be written. An app run from Xcode
+// writes to Xcode's console, and once that debug session ends while the app keeps running,
+// every write fails with EIO. A panic can't unwind through the Swift bridge, so it aborted the
+// app, even from the Err arms that report a panic caught by catch_unwind. Log lines are
+// dispensable; drop them when stderr is gone.
+macro_rules! eprintln {
+    ($($arg:tt)*) => {{
+        use std::io::Write;
+        let _ = writeln!(std::io::stderr(), $($arg)*);
+    }};
+}
+
 // Storage wrapper to handle both InMemory and OnDisk storage types
 enum StorageWrapper {
     InMemory(tc::storage::inmemory::InMemoryStorage),
