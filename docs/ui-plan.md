@@ -122,7 +122,7 @@ Implemented with the user's choices: tag badges shown (user tags only, synthetic
 
 # Round 4 — one-line rows, filter-aware badges, title size (planned 2026-10-18)
 
-**Status: all three items implemented 2026-10-18 (item 2's edit mode, taps and swipes, and item 3's menus, still to be checked on the phone); the user's decisions are recorded under "Decisions" at the end.** Written at the end of a VimNotes session (`~/vimango_ios`) that made the same changes to its note list, so these steps reuse what that work turned up. Work on `dev`, one commit per item; the user pushes.
+**Status: DONE 2026-10-18, all three items confirmed on the phone; the user's decisions are recorded under "Decisions" at the end.** Written at the end of a VimNotes session (`~/vimango_ios`) that made the same changes to its note list, so these steps reuse what that work turned up. Work on `dev`, one commit per item; the user pushes.
 
 The user's request:
 
@@ -172,7 +172,7 @@ Project, priority and tags are all hidden when pinned (user decision).
 - **Tests:** next to the existing `test_requiredProject_*` cases (which still hold): `(project:a or project:a)` pins a, `(project:a +x) or (project:a +y)` pins a, `(project:a or project:b)` pins nothing. `prio:H +x` pins H. `+a or +b` requires nothing, and `(+a +b) or (+a +c)` requires a. The default filter pins nothing.
 - Search doesn't change the pins. It narrows the list, but it doesn't guarantee a project.
 
-## 2. One-line rows — DONE (2026-10-18), awaiting on-device check
+## 2. One-line rows — DONE (2026-10-18), confirmed on the phone
 
 Implemented as written, with row padding 7 (VimNotes') and `defaultMinListRowHeight` 1. In the simulator, rows are about 36pt apart, and "Max lines per task" = 3 wraps long descriptions in the left column with the details on the first line. Rows with badges come out about 1.3pt taller than rows without, because a badge is slightly taller than the 14pt line. Still to check on the phone: edit mode, the note button's tap area, and swipes. VimNotes has no connection set up in the simulator, so the heights haven't been compared side by side.
 
@@ -195,7 +195,7 @@ Description ▶ ↻ ……………  [work] [H] [tag] [tag2]  Oct 21 3:00 PM  �
 - **List:** `.navigationLinkIndicatorVisibility(.hidden)` on each `NavigationLink`. Keep the swipe actions, edit-mode multi-select and the note button's tap separate from the row's tap.
 - **Keep:** completed and deleted rows at `.opacity(0.45)`, the red strikethrough on deleted rows only, and the red overdue date.
 
-## 3. Title size — DONE (2026-10-18), menus awaiting on-device check
+## 3. Title size — DONE (2026-10-18), confirmed on the phone
 
 Implemented as written: `TaskTitleSize` (in `TaskCellView.swift`) under `TCUserDefaults.taskCellTitleSize`, a Title Size picker in the Options menu, and "Title size" above "Max lines per task" in App Settings. The default is Small (14pt, the old size); the user uses Medium in VimNotes. In the simulator, rows are about 36, 38 and 40pt at Small, Medium and Large.
 
@@ -211,12 +211,13 @@ Implemented as written: `TaskTitleSize` (in `TaskCellView.swift`) under `TCUserD
 - **Seeding settings:** `xcrun simctl spawn … defaults write <bundle id>` lands in the simulator-wide preferences file, which the app reads but never writes, so a test can pass for the wrong reason. Write test values into the app container's `Library/Preferences/<bundle id>.plist` instead, or for the app group into the group container's plist, as the Round 1 sync setup does.
 - **Menus:** they can't be opened from the command line, so the user checks the menus on the phone.
 
-## Follow-ups found while verifying item 1 (2026-10-18, not yet fixed)
+## Follow-ups found during Round 4 (2026-10-18, not yet fixed)
 
 The user wants to come back to these after Round 4.
 
 - **Long filter titles overlap the header.** With `(project:fact +correct) or (project:fact +memory)`, the header's `fact +correct | fact +memory` runs over the DEV badge and the Edit button instead of truncating. The principal `headerView` (`filterSwitcherMenu`) isn't limited to the space between the toolbar buttons.
 - **A filter matching nothing showed a blank list.** With `status:pending project:work +work`, the screen had no rows and no "No tasks found" overlay. The overlay needs `tasks.isEmpty && !rebuildingCache`. The screenshot was taken about 9 s after launch, possibly before the first sync finished, so check whether it ever appears.
+- **The widget was killed with `0xDEAD10CC`** (crash report `taskchampWidget-2026-10-18-090423.ips` from the phone): iOS suspended it while it still held a lock on the shared SQLite database. Not a UI item, but found in the same session.
 
 1. **Tags:** show all of them. The user has few tags.
 2. **Due time:** show it for every task that has one, so the date column has no fixed width (see item 2).
