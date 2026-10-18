@@ -25,6 +25,7 @@ public struct TaskListView: View {
     @State var isShowingSyncSettings = false
     @State var isShowingAppSettings = false
     @State var isShowingNoteAlert = false
+    @AppStorage(TCUserDefaults.taskCellTitleSize.rawValue) var titleSize = TaskTitleSize.small
     @State var sortType: TasksHelper.TCSortType = .init(
         rawValue: UserDefaultsManager.standard
             .getValue(forKey: .sortType) ?? TasksHelper.TCSortType.defaultSort.rawValue
@@ -274,6 +275,12 @@ public struct TaskListView: View {
                         sortButton(sortType: .priority)
                         sortButton(sortType: .status)
                     }
+                    Picker("Title Size", selection: $titleSize) {
+                        ForEach(TaskTitleSize.allCases) { size in
+                            Text(size.label).tag(size)
+                        }
+                    }
+                    .pickerStyle(.menu)
                     Button("Filters") {
                         isShowingFilterView.toggle()
                     }

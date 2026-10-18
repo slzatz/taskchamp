@@ -8,6 +8,7 @@ public struct AppSettingsView: View {
         .getValue(forKey: .suggestOnlyActiveProjects) ?? true
 
     @AppStorage(TCUserDefaults.taskCellLineLimit.rawValue) private var taskCellLineLimit: Int = 1
+    @AppStorage(TCUserDefaults.taskCellTitleSize.rawValue) private var taskCellTitleSize = TaskTitleSize.small
     @AppStorage(TCUserDefaults.dueLookaheadDays.rawValue) private var dueLookaheadDays: Int = 7
     @AppStorage(TCUserDefaults.hasDefaultDueTime.rawValue) private var hasDefaultDueTime: Bool = false
     @AppStorage(TCUserDefaults.defaultDueTimeMinutes.rawValue) private var defaultDueTimeMinutes: Int = 9 * 60
@@ -35,6 +36,11 @@ public struct AppSettingsView: View {
         NavigationStack {
             Form {
                 Section {
+                    Picker("Title size", selection: $taskCellTitleSize) {
+                        ForEach(TaskTitleSize.allCases) { size in
+                            Text(size.label).tag(size)
+                        }
+                    }
                     Picker("Max lines per task", selection: $taskCellLineLimit) {
                         ForEach(1 ... 5, id: \.self) { value in
                             Text("\(value)").tag(value)
@@ -43,7 +49,10 @@ public struct AppSettingsView: View {
                 } header: {
                     Text("Task List")
                 } footer: {
-                    Text("Sets how many lines a task description can wrap to in the main task list.")
+                    Text(
+                        "Sets the size of task descriptions in the main task list, "
+                            + "and how many lines a description can wrap to."
+                    )
                 }
                 Section {
                     Stepper(value: $dueLookaheadDays, in: 1 ... 365) {

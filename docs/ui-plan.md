@@ -122,7 +122,7 @@ Implemented with the user's choices: tag badges shown (user tags only, synthetic
 
 # Round 4 — one-line rows, filter-aware badges, title size (planned 2026-10-18)
 
-**Status: plan, not started; the user's decisions are recorded under "Decisions" at the end.** Written at the end of a VimNotes session (`~/vimango_ios`) that made the same changes to its note list, so these steps reuse what that work turned up. Work on `dev`, one commit per item; the user pushes.
+**Status: all three items implemented 2026-10-18 (item 2's edit mode, taps and swipes, and item 3's menus, still to be checked on the phone); the user's decisions are recorded under "Decisions" at the end.** Written at the end of a VimNotes session (`~/vimango_ios`) that made the same changes to its note list, so these steps reuse what that work turned up. Work on `dev`, one commit per item; the user pushes.
 
 The user's request:
 
@@ -193,7 +193,9 @@ Description ▶ ↻ ……………  [work] [H] [tag] [tag2]  Oct 21 3:00 PM  �
 - **List:** `.navigationLinkIndicatorVisibility(.hidden)` on each `NavigationLink`. Keep the swipe actions, edit-mode multi-select and the note button's tap separate from the row's tap.
 - **Keep:** completed and deleted rows at `.opacity(0.45)`, the red strikethrough on deleted rows only, and the red overdue date.
 
-## 3. Title size
+## 3. Title size — DONE (2026-10-18), menus awaiting on-device check
+
+Implemented as written: `TaskTitleSize` (in `TaskCellView.swift`) under `TCUserDefaults.taskCellTitleSize`, a Title Size picker in the Options menu, and "Title size" above "Max lines per task" in App Settings. The default is Small (14pt, the old size); the user uses Medium in VimNotes. In the simulator, rows are about 36, 38 and 40pt at Small, Medium and Large.
 
 - **Setting:** add `TCUserDefaults.taskCellTitleSize`, read with `@AppStorage(TCUserDefaults.taskCellTitleSize.rawValue)`, as `taskCellLineLimit` is. App-only (`.standard`) is enough, since the widget draws its own rows.
 - **Sizes:** a `ListTitleSize`-style enum, Small/Medium/Large = 14/16/18pt, where Small is today's size. Scale the description font with `@ScaledMetric(relativeTo: .subheadline)` as VimNotes does. Only the description changes.

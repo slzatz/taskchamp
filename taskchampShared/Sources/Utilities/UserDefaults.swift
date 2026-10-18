@@ -27,6 +27,7 @@ public enum TCUserDefaults: String {
 
     case suggestOnlyActiveProjects
     case taskCellLineLimit
+    case taskCellTitleSize
     case dueLookaheadDays
     case hasDefaultDueTime
     case defaultDueTimeMinutes

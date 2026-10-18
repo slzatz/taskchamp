@@ -1,6 +1,35 @@
 import SwiftUI
 import taskchampShared
 
+/// The task list's description sizes, picked in the Options menu or App Settings. Only the description
+/// changes; the padding and badges don't, so rows grow and shrink with it.
+enum TaskTitleSize: Int, CaseIterable, Identifiable {
+    case small
+    case medium
+    case large
+
+    var id: Self {
+        self
+    }
+
+    /// At the default system text size; scaled with it otherwise.
+    var points: CGFloat {
+        switch self {
+        case .small: 14
+        case .medium: 16
+        case .large: 18
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .small: "Small"
+        case .medium: "Medium"
+        case .large: "Large"
+        }
+    }
+}
+
 public struct TaskCellView: View {
     let task: TCTask
     /// Opens the task's vimango note. When set, the row keeps a slot for the note button at its right
@@ -10,6 +39,10 @@ public struct TaskCellView: View {
     var pins = TCFilterPins()
 
     @AppStorage(TCUserDefaults.taskCellLineLimit.rawValue) private var lineLimit: Int = 1
+    @AppStorage(TCUserDefaults.taskCellTitleSize.rawValue) private var titleSize = TaskTitleSize.small
+    /// Follows the system text size, as the badges and date already do; a bare `.system(size:)`
+    /// would ignore it. 1 at the default size.
+    @ScaledMetric(relativeTo: .subheadline) private var titleScale: CGFloat = 1
 
     private var shownProject: String? {
         guard let project = task.project, project != pins.project else { return nil }
@@ -38,7 +71,7 @@ public struct TaskCellView: View {
     public var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text(task.description)
-                .font(.system(size: 14))
+                .font(.system(size: titleSize.points * titleScale))
                 .lineLimit(max(1, min(lineLimit, 5)))
                 .truncationMode(.tail)
                 .strikethrough(task.isDeleted, color: .red)
