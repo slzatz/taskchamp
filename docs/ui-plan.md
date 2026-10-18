@@ -108,8 +108,8 @@ Implemented with the user's choices: tag badges shown (user tags only, synthetic
 
 # Round 2 — faster filter switching (2026-09-27)
 
-1. **Header title is a filter dropdown — implemented, awaiting on-device check.** Outside edit mode, the principal header's title is a `Menu` (`filterSwitcherMenu` in `TaskListView-Ext.swift`) showing the compact title plus a chevron. The menu lists "My tasks", then every saved filter (favorites first, in `order`), each with a checkmark when selected, then "Manage Filters" to open `AddFilterView`. In edit mode, the header is still plain text.
-2. **Save button on the filter screen — implemented, awaiting on-device check.** `AddFilterView`'s command-line row has an inline "Save" button (`addFilter()`, the same action as Return), disabled while the field is empty.
+1. **Header title is a filter dropdown — DONE, confirmed on the phone.** Outside edit mode, the principal header's title is a `Menu` (`filterSwitcherMenu` in `TaskListView-Ext.swift`) showing the compact title plus a chevron. The menu lists "My tasks", then every saved filter (favorites first, in `order`), each with a checkmark when selected, then "Manage Filters" to open `AddFilterView`. In edit mode, the header is still plain text.
+2. **Save button on the filter screen — DONE, confirmed on the phone.** `AddFilterView`'s command-line row has an inline "Save" button (`addFilter()`, the same action as Return), disabled while the field is empty.
 3. Note: the Projects section on the filter screen came from upstream commit fd50b68 (2026-06-13, merged to upstream dev via PR #131). Upstream's release branch stops at 2026-05-23, so the App Store build doesn't have it.
 
 # Round 3 — note icon in task rows (2026-10-09)
@@ -139,7 +139,7 @@ Re-read before starting: `~/vimango_ios/VimNotes/VimNotes/Views/NoteRowView.swif
 - **Icon slots** are always drawn, at `.opacity(0)` plus `.accessibilityHidden` when absent, so icons sit in the same column on every row.
 - **Date column:** a `ZStack(alignment: .trailing)` over a hidden `Text("Yesterday")` gives a fixed width, so dates line up. Dates from earlier years print as `9/30/24` to fit that width.
 - **Row height:** iOS 26 pads every List row to about 52pt. The one-line rows only got shorter after `.environment(\.defaultMinListRowHeight, 1)` on the `List`; with padding 7 they're about 36pt. Check whether taskchamp's rows are being padded up the same way.
-- **Chevron:** `.navigationLinkIndicatorVisibility(.hidden)` removes the `>` and gives its width back to the title. The SDK lists it as iOS 17; check that it compiles at taskchamp's 17.0 deployment target.
+- **Chevron:** `.navigationLinkIndicatorVisibility(.hidden)` removes the `>` and gives its width back to the title. It is `@available(iOS 17.0, *)` in the Xcode 27 SDK (checked 2026-10-18), so it works at taskchamp's 17.0 deployment target.
 - **Title size:** `enum ListTitleSize: Int` with small/medium/large = 14/16/18pt, stored in `@AppStorage` and offered as a "Title Size" submenu (`Picker`, `.pickerStyle(.menu)`). The font is `.system(size: size.points * scale)`, where `@ScaledMetric(relativeTo: .subheadline) var scale: CGFloat = 1` makes it follow the iOS text-size setting as well. A bare `.system(size: 14)` ignores that setting, as taskchamp's does today. Only the title scales; padding and badges stay the same, so rows grow with the title.
 - **The user's verdict:** rows of about 36pt are easy to swipe, tap and long-press on the phone. With nothing filtered, titles get the least room (about 110pt beside two badges), which the user accepted.
 
@@ -151,6 +151,8 @@ Re-read before starting: `~/vimango_ios/VimNotes/VimNotes/Views/NoteRowView.swif
 - `TaskListView.swift`: `List(selection:)` with edit-mode multi-select, `NavigationLink(value: task)` rows, row insets 2/16/2/16, `.listStyle(.inset)`. The ellipsis Options menu holds the "Sort by" submenu and Clear filters. The header is the filter switcher `Menu` from Round 2.
 - `selectedFilter` (`ContentView`) and `sortType` are **already remembered** in `UserDefaults` (`.selectedFilter`, `.sortType`). Unlike VimNotes, only the title size is new to remember.
 - `FilterExpression.matches`: `.project(x)` is an exact match (`task.project == name`), not Taskwarrior's prefix match, so "the filter pins project x" is well defined.
+- `FilterExpression.requiredProject` (and `TCFilter.requiredProject`) **already exists**: the one project an `.and` chain allows, nil for conflicting projects, an empty `project:`, or any `.or`. The create sheet uses it for its default project, and `TaskchampTests` has 9 `test_requiredProject_*` cases.
+- The default "My tasks" filter's `fullDescription` doesn't parse, so its `filterExpression` is nil and it pins nothing without a special case.
 - Tests are XCTest (`taskchamp/Tests/TaskchampTests.swift`, `@testable import taskchampShared`).
 
 ## 1. Hide badges the filter already pins
@@ -159,13 +161,13 @@ Taskchamp has no context or folder menus. The filter is one expression, so the r
 
 Project, priority and tags are all hidden when pinned (user decision).
 
-- **Shared and testable:** add to `FilterExpression` (`FilterExpression.swift`):
-  - `pinnedProject: String?`: `.project(x)` → `x`. `.and` → the first operand that pins one. `.or` → `x` only if *every* operand pins the same `x`. Anything else → nil.
-  - `pinnedPriority: TCTask.Priority?`: the same rules.
+- **Shared and testable:** build on the existing `requiredProject` in `FilterExpression.swift` rather than adding a parallel property:
+  - Extend `requiredProject` to `.or`: `x` only if *every* operand requires the same `x`. This also improves the create sheet's default project for filters like `(project:a +x) or (project:a +y)`.
+  - `requiredPriority: TCTask.Priority?`: the same rules as `requiredProject` (one value across an `.and` chain, the same value in every `.or` branch, else nil).
   - `requiredTags: Set<String>`: `.tag(x)` → `[x]`. `.and` → the union of its operands. `.or` → the intersection. Anything else → empty.
-  - Possibly a small `TCFilter.pins` struct wrapping the three, with nil or empty for the default "My tasks" filter.
+  - Possibly a small `TCFilter.pins` struct wrapping the three.
 - `TaskCellView` takes the pins as a parameter (`TaskListView` computes them once from `selectedFilter`). It skips the project badge when `task.project == pins.project`, the priority badge likewise, and any tag in `requiredTags`.
-- **Tests:** `project:work` pins work. `project:work +x` pins work and requires x. `(project:a or project:a)` pins a. `(project:a or project:b)` pins nothing. `+a or +b` requires nothing, and `(+a +b) or (+a +c)` requires a. The default filter pins nothing.
+- **Tests:** next to the existing `test_requiredProject_*` cases (which still hold): `(project:a or project:a)` pins a, `(project:a +x) or (project:a +y)` pins a, `(project:a or project:b)` pins nothing. `prio:H +x` pins H. `+a or +b` requires nothing, and `(+a +b) or (+a +c)` requires a. The default filter pins nothing.
 - Search doesn't change the pins. It narrows the list, but it doesn't guarantee a project.
 
 ## 2. One-line rows
@@ -177,24 +179,26 @@ Description ▶ ↻ ……………  [work] [H] [tag] [tag2]  Oct 21 3:00 PM  �
 ```
 
 - **Order:** description, then the active (`play.fill`) and recurring icons right after it, as now. Then `Spacer(minLength: 8)`, then a trailing group with `.layoutPriority(1)`:
-  - **Badges:** the project and priority badges, then **every** user tag. The user has few tags, and the description is what gets cut short. Cap each project and tag badge at about 80pt with `.frame(maxWidth:).fixedSize()`. Priority is one letter.
+  - **Badges:** the project and priority badges, then the **first** user tag not pinned by the filter (by name, so it's stable), then a `+n` badge (green, like tags) for the rest (user decision 2026-10-18). Cap each project and tag badge at about 80pt with `.frame(maxWidth:).fixedSize()`, as a `maxWidth` option on `TagBadge`. Priority is one letter.
   - **Due date**, with its time whenever it has one, as `dueText` does today.
-  - **Note button** last, at the right edge: `.borderless`, with the enlarged tap area. Give it a fixed slot, drawn empty when there's no note, so the right edge of the date lines up on every row. Its tap area must not grow the row: the current `-8` vertical padding trick does that.
+  - **Note button** last, at the right edge: `.borderless`, with the enlarged tap area. Give it a fixed slot, drawn empty when there's no note, so the right edge of the date lines up on every row. In edit mode (`openNote` is nil) drop the slot on every row, since the selection circle takes about 40pt. The enlarged tap area must not change the layout: today the vertical `+8`/`-8` padding around `.contentShape` keeps the row from growing, but the `.padding(.leading, 16)` is real width. Next to a `Spacer` that was free, but in the trailing group it costs the description 16pt on every row, so cancel it the same way (`-16` after `.contentShape`).
+- **Width budget** (measured 2026-10-18, default text size, 402pt-wide phone, about 370pt after insets): project `work` + `H` + two tags + "Oct 21 3:00 PM" + the note slot is about 287pt, which leaves the description about 63pt (about 10 characters), and about 25pt in edit mode. With badges at `fixedSize`, a third tag would have overflowed the row. That's why only one tag is shown, followed by `+n`.
 - **Date width varies.** Because times are always shown, "Oct 21 3:00 PM" sits beside "Oct 21", so a fixed date column (VimNotes' hidden template) would waste room on most rows. Instead, right-align the date against the note slot, with no fixed width. Dates line up on their right edge, and the badges' position varies with the date's width. Older years print as `9/30/24`, as in VimNotes, to save width. A shorter time, such as dropping `:00`, is optional.
-- **Remove "Max lines per task"** (`taskCellLineLimit`): the `Picker` in `AppSettingsView`, the `@AppStorage` in `TaskCellView`, and the `TCUserDefaults` case. Rows are always one line, and the description is `.lineLimit(1)`. The setting already defaults to 1, so the user's description line won't look different. What goes away is the second line of details.
-- **List:** `.environment(\.defaultMinListRowHeight, 1)` if rows are being padded up, and `.navigationLinkIndicatorVisibility(.hidden)` on each `NavigationLink`. Keep the swipe actions, edit-mode multi-select and the note button's tap separate from the row's tap.
+- **Keep "Max lines per task"** (`taskCellLineLimit`, 1–5, default 1; decision 9). The details never get a line of their own. A description longer than one line wraps within its own column on the left: `.lineLimit(lineLimit)` on the description, and `HStack(alignment: .firstTextBaseline)` on the outer row, so the icons, badges, date and note button stay aligned with the first line. Short tasks stay one line, and only long ones make the row taller. Text can't flow underneath the badges, since SwiftUI doesn't wrap text around views, so don't attempt that.
+- **Row height:** match VimNotes' three heights. The user likes them: Medium is their default there, and they use Small and Large at times. Height is the title's line height plus fixed padding, so use VimNotes' sizes and padding and `.environment(\.defaultMinListRowHeight, 1)`. Without that, iOS 26 pads short rows up to about 52pt and Small and Medium look alike. Adjust taskchamp's padding and row insets (today 4 and 2) until screenshots at each size match VimNotes'.
+- **List:** `.navigationLinkIndicatorVisibility(.hidden)` on each `NavigationLink`. Keep the swipe actions, edit-mode multi-select and the note button's tap separate from the row's tap.
 - **Keep:** completed and deleted rows at `.opacity(0.45)`, the red strikethrough on deleted rows only, and the red overdue date.
 
 ## 3. Title size
 
 - **Setting:** add `TCUserDefaults.taskCellTitleSize`, read with `@AppStorage(TCUserDefaults.taskCellTitleSize.rawValue)`, as `taskCellLineLimit` is. App-only (`.standard`) is enough, since the widget draws its own rows.
 - **Sizes:** a `ListTitleSize`-style enum, Small/Medium/Large = 14/16/18pt, where Small is today's size. Scale the description font with `@ScaledMetric(relativeTo: .subheadline)` as VimNotes does. Only the description changes.
-- **Menu:** a "Title Size" submenu in the ellipsis Options menu, next to "Sort by". Optionally, also list it in App Settings beside "Max lines per task".
+- **Both places** (user decision 2026-10-18): a "Title Size" submenu in the ellipsis Options menu, next to "Sort by", and a picker in App Settings beside "Max lines per task". Both bind the same `@AppStorage` key.
 
 ## Verification
 
 - **Build and tests:** the build, `make test` and simulator steps above still apply. The new pin tests must pass.
-- **Screenshots:** the default filter, a `project:work` filter (project badges gone), a `prio:H` filter (priority badges gone), a filter with `+tag` (that tag's badges gone), a task with several tags and a long description, a timed task, an overdue task, and edit mode. Then each title size.
+- **Screenshots:** the default filter, a `project:work` filter (project badges gone), a `prio:H` filter (priority badges gone), a filter with `+tag` (that tag's badges gone), a task with several tags and a long description (at max lines 1 and 3), a timed task, an overdue task, and edit mode. Then each title size.
 - **Simulator data:** the simulator writes to real task data, so use throwaway tasks (see Verification above).
 - **Seeding settings:** `xcrun simctl spawn … defaults write <bundle id>` lands in the simulator-wide preferences file, which the app reads but never writes, so a test can pass for the wrong reason. Write test values into the app container's `Library/Preferences/<bundle id>.plist` instead, or for the app group into the group container's plist, as the Round 1 sync setup does.
 - **Menus:** they can't be opened from the command line, so the user checks the menus on the phone.
@@ -203,6 +207,13 @@ Description ▶ ↻ ……………  [work] [H] [tag] [tag2]  Oct 21 3:00 PM  �
 
 1. **Tags:** show all of them. The user has few tags.
 2. **Due time:** show it for every task that has one, so the date column has no fixed width (see item 2).
-3. **One line always.** Remove "Max lines per task".
+3. ~~**One line always.** Remove "Max lines per task".~~ Reversed by decision 9.
 4. **Chevron:** hide it.
 5. **Pinned priority:** hide the priority badge too, as for project and tags.
+
+## Decisions (user, 2026-10-18, after review)
+
+6. **Extra tags:** show the first tag, then `+n` (see the width budget in item 2).
+7. **Row heights:** match VimNotes' three sizes. Medium is the user's usual size.
+8. **Title Size** goes in both the Options menu and App Settings.
+9. **Keep "Max lines per task"** alongside Title Size. They are separate settings: size sets each line's height, max lines sets how many lines the description may wrap to (in its left column, see item 2), and row height = lines × line height + padding. The user plans the same change for VimNotes' `NoteRowView`, which has only ever shown one line.
