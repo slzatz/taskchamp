@@ -76,6 +76,10 @@ extension TaskListView {
                     .font(.headline)
                     .lineLimit(1)
                     .truncationMode(.tail)
+                    // The toolbar doesn't narrow its principal item to fit between the Edit and
+                    // Options buttons, so a long title ran over them. 160 leaves room for the DEV
+                    // badge, the chevron and the sync spinner on a 402pt-wide phone.
+                    .frame(maxWidth: 160)
                 Image(systemName: "chevron.down")
                     .font(.caption.bold())
                     .foregroundStyle(.secondary)
@@ -203,6 +207,9 @@ extension TaskListView {
         do {
             let newTasks = try TaskchampionService.shared.getTasks(sortType: sortType, filter: selectedFilter)
             if newTasks == tasks {
+                // The first load also ends here when it finds nothing, since `tasks` starts empty;
+                // without this, a filter matching no tasks never showed "No tasks found".
+                rebuildingCache = false
                 return
             }
             withAnimation {

@@ -215,8 +215,9 @@ Implemented as written: `TaskTitleSize` (in `TaskCellView.swift`) under `TCUserD
 
 The user wants to come back to these after Round 4.
 
-- **Long filter titles overlap the header.** With `(project:fact +correct) or (project:fact +memory)`, the header's `fact +correct | fact +memory` runs over the DEV badge and the Edit button instead of truncating. The principal `headerView` (`filterSwitcherMenu`) isn't limited to the space between the toolbar buttons.
-- **A filter matching nothing showed a blank list.** With `status:pending project:work +work`, the screen had no rows and no "No tasks found" overlay. The overlay needs `tasks.isEmpty && !rebuildingCache`. The screenshot was taken about 9 s after launch, possibly before the first sync finished, so check whether it ever appears.
+- **FIXED 2026-10-18 — Long filter titles overlap the header.** With `(project:fact +correct) or (project:fact +memory)`, the header's `fact +correct | fact +memory` runs over the DEV badge and the Edit button instead of truncating. The principal `headerView` (`filterSwitcherMenu`) isn't limited to the space between the toolbar buttons.
+- **FIXED 2026-10-18 — A filter matching nothing showed a blank list.** With `status:pending project:work +work`, the screen had no rows and no "No tasks found" overlay. The overlay needs `tasks.isEmpty && !rebuildingCache`. The screenshot was taken about 9 s after launch, possibly before the first sync finished, so check whether it ever appears.
+  **FIXED 2026-10-18:** it never appeared. `tasks` starts empty, so a first load that found nothing returned at `newTasks == tasks` before clearing `rebuildingCache`. The title fix caps the menu's title at 160pt (`frame(maxWidth:)`).
 - **The widget was killed with `0xDEAD10CC`** (crash report `taskchampWidget-2026-10-18-090423.ips` from the phone): iOS suspended it while it still held a lock on the shared SQLite database. Not a UI item, but found in the same session.
 
 1. **Tags:** show all of them. The user has few tags.
