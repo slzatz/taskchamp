@@ -76,7 +76,11 @@ public struct CreateTaskView: View, UseKeyboardToolbar {
         NavigationStack {
             Form {
                 Section {
-                    TextEditor(text: $description)
+                    // Grows with its text, so a long description from a vimango
+                    // note shows in full. A TextEditor in a Form stays one line
+                    // tall, scrolled to the cursor at the end.
+                    TextField("", text: $description, axis: .vertical)
+                        .lineLimit(1 ... 5)
                         .focused($focusedField, equals: .description)
                         .bold()
                     SelectProjectButton(project: $project) {
