@@ -119,3 +119,90 @@ Implemented with the user's choices: tag badges shown (user tags only, synthetic
 - `TCTask.vimangoNoteURL` (`taskchampShared/Sources/Models/TCTask-Vimango.swift`) builds the `vimango://task-note` URL for both the row and `EditTaskView`.
 - `TaskCellView(task:openNote:)` draws the button; `TaskListView.openNote(_:)` opens the URL and shows "Can't open VimNotes" if that fails.
 - Confirmed on the phone: the icon opens the right note, and the tap area (16 pt to its left, a little above and below) is big enough that misses into the edit screen haven't been a problem.
+
+# Round 4 — one-line rows, filter-aware badges, title size (planned 2026-10-18)
+
+**Status: plan, not started; the user's decisions are recorded under "Decisions" at the end.** Written at the end of a VimNotes session (`~/vimango_ios`) that made the same changes to its note list, so these steps reuse what that work turned up. Work on `dev`, one commit per item; the user pushes.
+
+The user's request:
+
+1. Don't show what the filter already says. When the selected filter can only match one project, every row's project badge repeats it.
+2. Use one line per task instead of two.
+3. Let the user change the title size, as VimNotes now does.
+
+## Reference: what VimNotes did
+
+Re-read before starting: `~/vimango_ios/VimNotes/VimNotes/Views/NoteRowView.swift` and `NoteListView.swift`, plus the "List view: filters and row indicators" section of `~/vimango_ios/CLAUDE.md`. Commits `1ae44bf` (one-line rows, badges only where the filters leave a choice) and `1dbb706` (title sizes, remembered settings).
+
+- **Row:** one `HStack(spacing: 6)`: the title (`.lineLimit(1)`), the star, `Spacer(minLength: 8)`, then an inner `HStack(spacing: 4)` with `.layoutPriority(1)` holding the badges, fixed icon slots and the date. The trailing group is laid out first, so the title is what gets cut short.
+- **Badges** cap themselves with `.lineLimit(1).frame(maxWidth: 90).fixedSize()`, applied before the padding and background. This keeps each badge at its own width up to the cap. A plain `.frame(maxWidth:)` stretches every badge to the cap.
+- **Icon slots** are always drawn, at `.opacity(0)` plus `.accessibilityHidden` when absent, so icons sit in the same column on every row.
+- **Date column:** a `ZStack(alignment: .trailing)` over a hidden `Text("Yesterday")` gives a fixed width, so dates line up. Dates from earlier years print as `9/30/24` to fit that width.
+- **Row height:** iOS 26 pads every List row to about 52pt. The one-line rows only got shorter after `.environment(\.defaultMinListRowHeight, 1)` on the `List`; with padding 7 they're about 36pt. Check whether taskchamp's rows are being padded up the same way.
+- **Chevron:** `.navigationLinkIndicatorVisibility(.hidden)` removes the `>` and gives its width back to the title. The SDK lists it as iOS 17; check that it compiles at taskchamp's 17.0 deployment target.
+- **Title size:** `enum ListTitleSize: Int` with small/medium/large = 14/16/18pt, stored in `@AppStorage` and offered as a "Title Size" submenu (`Picker`, `.pickerStyle(.menu)`). The font is `.system(size: size.points * scale)`, where `@ScaledMetric(relativeTo: .subheadline) var scale: CGFloat = 1` makes it follow the iOS text-size setting as well. A bare `.system(size: 14)` ignores that setting, as taskchamp's does today. Only the title scales; padding and badges stay the same, so rows grow with the title.
+- **The user's verdict:** rows of about 36pt are easy to swipe, tap and long-press on the phone. With nothing filtered, titles get the least room (about 110pt beside two badges), which the user accepted.
+
+## Current taskchamp code (read before changing)
+
+- `taskchamp/Sources/View/Cells/TaskCellView.swift`: two lines.
+  - **Line 1:** the description (`.system(size: 14)`, `lineLimit` from the `taskCellLineLimit` setting, 1–5, default 1), the active and recurring icons, `Spacer`, and the note button (`.borderless`, with an enlarged tap area).
+  - **Line 2** (only when `hasDetails`): the project badge (blue), the priority badge (tinted by level), a badge for every user tag (green), `Spacer`, and the due date (red when overdue; the time is appended when it isn't midnight).
+- `TaskListView.swift`: `List(selection:)` with edit-mode multi-select, `NavigationLink(value: task)` rows, row insets 2/16/2/16, `.listStyle(.inset)`. The ellipsis Options menu holds the "Sort by" submenu and Clear filters. The header is the filter switcher `Menu` from Round 2.
+- `selectedFilter` (`ContentView`) and `sortType` are **already remembered** in `UserDefaults` (`.selectedFilter`, `.sortType`). Unlike VimNotes, only the title size is new to remember.
+- `FilterExpression.matches`: `.project(x)` is an exact match (`task.project == name`), not Taskwarrior's prefix match, so "the filter pins project x" is well defined.
+- Tests are XCTest (`taskchamp/Tests/TaskchampTests.swift`, `@testable import taskchampShared`).
+
+## 1. Hide badges the filter already pins
+
+Taskchamp has no context or folder menus. The filter is one expression, so the rule becomes: hide a badge whose value every task the filter can match must share.
+
+Project, priority and tags are all hidden when pinned (user decision).
+
+- **Shared and testable:** add to `FilterExpression` (`FilterExpression.swift`):
+  - `pinnedProject: String?`: `.project(x)` → `x`. `.and` → the first operand that pins one. `.or` → `x` only if *every* operand pins the same `x`. Anything else → nil.
+  - `pinnedPriority: TCTask.Priority?`: the same rules.
+  - `requiredTags: Set<String>`: `.tag(x)` → `[x]`. `.and` → the union of its operands. `.or` → the intersection. Anything else → empty.
+  - Possibly a small `TCFilter.pins` struct wrapping the three, with nil or empty for the default "My tasks" filter.
+- `TaskCellView` takes the pins as a parameter (`TaskListView` computes them once from `selectedFilter`). It skips the project badge when `task.project == pins.project`, the priority badge likewise, and any tag in `requiredTags`.
+- **Tests:** `project:work` pins work. `project:work +x` pins work and requires x. `(project:a or project:a)` pins a. `(project:a or project:b)` pins nothing. `+a or +b` requires nothing, and `(+a +b) or (+a +c)` requires a. The default filter pins nothing.
+- Search doesn't change the pins. It narrows the list, but it doesn't guarantee a project.
+
+## 2. One-line rows
+
+Follow the VimNotes row, adapted to what a task shows:
+
+```
+Description ▶ ↻ ……………  [work] [H] [tag] [tag2]  Oct 21 3:00 PM  ▤
+```
+
+- **Order:** description, then the active (`play.fill`) and recurring icons right after it, as now. Then `Spacer(minLength: 8)`, then a trailing group with `.layoutPriority(1)`:
+  - **Badges:** the project and priority badges, then **every** user tag. The user has few tags, and the description is what gets cut short. Cap each project and tag badge at about 80pt with `.frame(maxWidth:).fixedSize()`. Priority is one letter.
+  - **Due date**, with its time whenever it has one, as `dueText` does today.
+  - **Note button** last, at the right edge: `.borderless`, with the enlarged tap area. Give it a fixed slot, drawn empty when there's no note, so the right edge of the date lines up on every row. Its tap area must not grow the row: the current `-8` vertical padding trick does that.
+- **Date width varies.** Because times are always shown, "Oct 21 3:00 PM" sits beside "Oct 21", so a fixed date column (VimNotes' hidden template) would waste room on most rows. Instead, right-align the date against the note slot, with no fixed width. Dates line up on their right edge, and the badges' position varies with the date's width. Older years print as `9/30/24`, as in VimNotes, to save width. A shorter time, such as dropping `:00`, is optional.
+- **Remove "Max lines per task"** (`taskCellLineLimit`): the `Picker` in `AppSettingsView`, the `@AppStorage` in `TaskCellView`, and the `TCUserDefaults` case. Rows are always one line, and the description is `.lineLimit(1)`. The setting already defaults to 1, so the user's description line won't look different. What goes away is the second line of details.
+- **List:** `.environment(\.defaultMinListRowHeight, 1)` if rows are being padded up, and `.navigationLinkIndicatorVisibility(.hidden)` on each `NavigationLink`. Keep the swipe actions, edit-mode multi-select and the note button's tap separate from the row's tap.
+- **Keep:** completed and deleted rows at `.opacity(0.45)`, the red strikethrough on deleted rows only, and the red overdue date.
+
+## 3. Title size
+
+- **Setting:** add `TCUserDefaults.taskCellTitleSize`, read with `@AppStorage(TCUserDefaults.taskCellTitleSize.rawValue)`, as `taskCellLineLimit` is. App-only (`.standard`) is enough, since the widget draws its own rows.
+- **Sizes:** a `ListTitleSize`-style enum, Small/Medium/Large = 14/16/18pt, where Small is today's size. Scale the description font with `@ScaledMetric(relativeTo: .subheadline)` as VimNotes does. Only the description changes.
+- **Menu:** a "Title Size" submenu in the ellipsis Options menu, next to "Sort by". Optionally, also list it in App Settings beside "Max lines per task".
+
+## Verification
+
+- **Build and tests:** the build, `make test` and simulator steps above still apply. The new pin tests must pass.
+- **Screenshots:** the default filter, a `project:work` filter (project badges gone), a `prio:H` filter (priority badges gone), a filter with `+tag` (that tag's badges gone), a task with several tags and a long description, a timed task, an overdue task, and edit mode. Then each title size.
+- **Simulator data:** the simulator writes to real task data, so use throwaway tasks (see Verification above).
+- **Seeding settings:** `xcrun simctl spawn … defaults write <bundle id>` lands in the simulator-wide preferences file, which the app reads but never writes, so a test can pass for the wrong reason. Write test values into the app container's `Library/Preferences/<bundle id>.plist` instead, or for the app group into the group container's plist, as the Round 1 sync setup does.
+- **Menus:** they can't be opened from the command line, so the user checks the menus on the phone.
+
+## Decisions (user, 2026-10-18)
+
+1. **Tags:** show all of them. The user has few tags.
+2. **Due time:** show it for every task that has one, so the date column has no fixed width (see item 2).
+3. **One line always.** Remove "Max lines per task".
+4. **Chevron:** hide it.
+5. **Pinned priority:** hide the priority badge too, as for project and tags.
