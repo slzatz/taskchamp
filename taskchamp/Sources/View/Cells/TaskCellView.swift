@@ -65,9 +65,10 @@ public struct TaskCellView: View {
         return due < Date()
     }
 
-    /// One line of details: the description and its icons, then the badges, due date and note button
-    /// at the right edge. The trailing group is laid out first, so the description is what gets cut
-    /// short, or wraps (up to the "Max lines per task" setting) while the details stay on its first line.
+    /// One line: the description and its icons, followed by its badges, then the due date and note
+    /// button at the right edge. The badges and the right edge are laid out first, so the description is
+    /// what gets cut short, or wraps (up to the "Max lines per task" setting) while the rest stays on its
+    /// first line.
     public var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text(task.description)
@@ -85,15 +86,17 @@ public struct TaskCellView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            badges
+                .layoutPriority(1)
             Spacer(minLength: 8)
-            details
+            trailing
                 .layoutPriority(1)
         }
         .padding(.vertical, 7)
         .opacity(task.isCompleted || task.isDeleted ? 0.45 : 1)
     }
 
-    private var details: some View {
+    private var badges: some View {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
             if let project = shownProject {
                 TagBadge(text: project, color: .blue, maxWidth: 80)
@@ -108,6 +111,12 @@ public struct TaskCellView: View {
             if shownTags.count > 1 {
                 TagBadge(text: "+\(shownTags.count - 1)", color: .green)
             }
+        }
+    }
+
+    /// The due date and note button, a column at the right edge.
+    private var trailing: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
             if task.due != nil {
                 Text(dueText)
                     .font(.caption2)

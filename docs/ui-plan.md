@@ -176,6 +176,8 @@ Project, priority and tags are all hidden when pinned (user decision).
 
 Implemented as written, with row padding 7 (VimNotes') and `defaultMinListRowHeight` 1. In the simulator, rows are about 36pt apart, and "Max lines per task" = 3 wraps long descriptions in the left column with the details on the first line. Rows with badges come out about 1.3pt taller than rows without, because a badge is slightly taller than the 14pt line. Still to check on the phone: edit mode, the note button's tap area, and swipes. VimNotes has no connection set up in the simulator, so the heights haven't been compared side by side.
 
+**Changed the same day (decision 10):** the badges (project, priority, tag, `+n`) now follow the description and its icons, and only the due date and note button stay at the right edge. Both the badges and the right-edge group have `.layoutPriority(1)`, so a long description is cut short and its badges stay attached to its end. The sketch and bullets below describe the first version, with every badge on the right.
+
 Follow the VimNotes row, adapted to what a task shows:
 
 ```
@@ -228,3 +230,4 @@ The user wants to come back to these after Round 4.
 7. **Row heights:** match VimNotes' three sizes. Medium is the user's usual size.
 8. **Title Size** goes in both the Options menu and App Settings.
 9. **Keep "Max lines per task"** alongside Title Size. They are separate settings: size sets each line's height, max lines sets how many lines the description may wrap to (in its left column, see item 2), and row height = lines × line height + padding. The user plans the same change for VimNotes' `NoteRowView`, which has only ever shown one line.
+10. **Badges beside the description** (after trying the first version): project, then priority, then tags, right after the description; the date and note button stay on the right. The cost, accepted: priority is no longer in a column.
