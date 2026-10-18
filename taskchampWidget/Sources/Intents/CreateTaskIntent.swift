@@ -20,7 +20,10 @@ struct CreateTaskIntent: AppIntent {
         try TaskchampionService.shared.setDbUrl(path: destinationPath)
 
         let task = NLPService.shared.createTask(from: taskInput)
-        try TaskchampionService.shared.createTask(task)
+        try TaskchampionService.shared.createTask(task, skipSync: true)
+        // Waits for the sync, or iOS could suspend the widget while the sync holds the database lock
+        // and kill it (0xDEAD10CC).
+        try? await TaskchampionService.shared.sync()
 
         return .result()
     }

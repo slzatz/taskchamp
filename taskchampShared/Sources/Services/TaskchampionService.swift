@@ -11,6 +11,12 @@ public class TaskchampionService {
     private var currentTask: _Concurrency.Task<Void, Error>?
     private let syncReplicaStore = SyncReplicaStore()
 
+    /// WidgetKit reloads the widget itself after each timeline and widget intent. A sync there that
+    /// also reloaded all timelines asked for another timeline, which synced again, round and round.
+    private static let isWidgetExtension =
+        (Bundle.main.object(forInfoDictionaryKey: "NSExtension") as? [String: Any])?["NSExtensionPointIdentifier"]
+            as? String == "com.apple.widgetkit-extension"
+
     public enum SyncType: Codable, CaseIterable {
         case remote
         case aws
@@ -80,7 +86,9 @@ public class TaskchampionService {
                 } else {
                     needToSync = true
                 }
-                WidgetCenter.shared.reloadAllTimelines()
+                if !Self.isWidgetExtension {
+                    WidgetCenter.shared.reloadAllTimelines()
+                }
                 onSync()
             } catch is CancellationError {
                 // do nothing: task was canceled before finishing
@@ -173,7 +181,11 @@ public class TaskchampionService {
     }
 
     @MainActor
-    public func togglePendingTasksStatus(uuids: Set<String>, onSync: @escaping () -> Void = {}) throws {
+    public func togglePendingTasksStatus(
+        uuids: Set<String>,
+        skipSync: Bool = false,
+        onSync: @escaping () -> Void = {}
+    ) throws {
         for uuid in uuids {
             let task = try getTask(uuid: uuid)
             var newStatus: TCTask.Status = .pending
@@ -185,6 +197,9 @@ public class TaskchampionService {
             var updatedTask = task
             updatedTask.status = newStatus
             try updateTask(updatedTask, skipSync: true)
+        }
+        if skipSync {
+            return
         }
         _Concurrency.Task.detached {
             try? await self.sync {
@@ -303,7 +318,7 @@ public class TaskchampionService {
         }
     }
 
-    public func createTask(_ task: TCTask, onSync: @escaping () -> Void = {}) throws {
+    public func createTask(_ task: TCTask, skipSync: Bool = false, onSync: @escaping () -> Void = {}) throws {
         guard let replica else {
             throw TCError.genericError("Database not set")
         }
@@ -332,6 +347,9 @@ public class TaskchampionService {
 
         _ = replica.sync_no_server() // rebuild the working set
 
+        if skipSync {
+            return
+        }
         _Concurrency.Task.detached {
             try? await self.sync {
                 onSync()

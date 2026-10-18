@@ -20,7 +20,7 @@ struct Provider: AppIntentTimelineProvider {
     @MainActor
     func timeline(for configuration: TaskchampWidgetIntent, in _: Context) async -> Timeline<TaskEntry> {
         let filter = resolveFilter(from: configuration)
-        let tasks = getTasks(filter: filter)
+        let tasks = await syncedTasks(filter: filter)
         let filterId = configuration.filter?.isNoFilter == true ? nil : configuration.filter?.id
         let entry = TaskEntry(date: Date(), title: configuration.widgetTitle, tasks: tasks, filterId: filterId)
         return Timeline(entries: [entry], policy: .atEnd)
@@ -38,26 +38,31 @@ struct Provider: AppIntentTimelineProvider {
         return filter
     }
 
+    /// Reads the local database, which the placeholder and the gallery snapshot need quickly.
     @MainActor
     func getTasks(filter: TCFilter = .defaultFilter) -> [TCTask] {
         do {
             let localReplicaPath = try FileService.shared.getDestinationPathForLocalReplica()
-            try TaskchampionService.shared
-                .setDbUrl(
-                    path: localReplicaPath
-                )
-            Task {
-                do {
-                    try await TaskchampionService.shared.sync()
-                } catch {
-                    print("Error syncing from widget: \(error)")
-                }
-            }
+            try TaskchampionService.shared.setDbUrl(path: localReplicaPath)
             return try TaskchampionService.shared.getTasks(filter: filter)
         } catch {
             print("Error getting tasks \(error)")
             return []
         }
+    }
+
+    /// Syncs, then reads. The sync is awaited: iOS suspends the widget once this returns, and a
+    /// sync still running then holds the database lock, for which iOS kills the widget (0xDEAD10CC).
+    @MainActor
+    func syncedTasks(filter: TCFilter) async -> [TCTask] {
+        do {
+            let localReplicaPath = try FileService.shared.getDestinationPathForLocalReplica()
+            try TaskchampionService.shared.setDbUrl(path: localReplicaPath)
+            try await TaskchampionService.shared.sync()
+        } catch {
+            print("Error syncing from widget: \(error)")
+        }
+        return getTasks(filter: filter)
     }
 }
 
