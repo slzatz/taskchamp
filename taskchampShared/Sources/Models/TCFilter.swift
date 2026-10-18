@@ -68,6 +68,16 @@ public class TCFilter: Codable {
         filterExpression?.requiredProject
     }
 
+    /// What every task this filter matches shares, so task rows can leave it out.
+    public var pins: TCFilterPins {
+        guard let expression = filterExpression else { return TCFilterPins() }
+        return TCFilterPins(
+            project: expression.requiredProject,
+            priority: expression.requiredPriority,
+            tags: expression.requiredTags
+        )
+    }
+
     public var realDue: Date? {
         return didSetDue ? due : nil
     }
@@ -222,5 +232,18 @@ public class TCFilter: Codable {
         try container.encode(didSetRecur, forKey: .didSetRecur)
         try container.encode(tagsToInclude, forKey: .tagsToInclude)
         try container.encode(tagsToExclude, forKey: .tagsToExclude)
+    }
+}
+
+/// The project, priority and tags a filter pins: every task it matches has them.
+public struct TCFilterPins: Equatable {
+    public var project: String?
+    public var priority: TCTask.Priority?
+    public var tags: Set<String>
+
+    public init(project: String? = nil, priority: TCTask.Priority? = nil, tags: Set<String> = []) {
+        self.project = project
+        self.priority = priority
+        self.tags = tags
     }
 }

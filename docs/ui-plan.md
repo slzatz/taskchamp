@@ -155,7 +155,9 @@ Re-read before starting: `~/vimango_ios/VimNotes/VimNotes/Views/NoteRowView.swif
 - The default "My tasks" filter's `fullDescription` doesn't parse, so its `filterExpression` is nil and it pins nothing without a special case.
 - Tests are XCTest (`taskchamp/Tests/TaskchampTests.swift`, `@testable import taskchampShared`).
 
-## 1. Hide badges the filter already pins
+## 1. Hide badges the filter already pins — DONE (2026-10-18)
+
+Implemented as written. `requiredProject` and `requiredPriority` share one generic helper (`requiredValue`) in `FilterExpression.swift`. The pins are `TCFilter.pins`, a `TCFilterPins` struct defined in `TCFilter.swift`. `TaskListView` reads it once per list and passes it to `TaskCellView(task:openNote:pins:)`. A row whose only details were pinned now has no second line, until item 2 makes every row one line.
 
 Taskchamp has no context or folder menus. The filter is one expression, so the rule becomes: hide a badge whose value every task the filter can match must share.
 

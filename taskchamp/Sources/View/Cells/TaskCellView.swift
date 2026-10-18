@@ -5,11 +5,23 @@ public struct TaskCellView: View {
     let task: TCTask
     /// Opens the task's vimango note. When set and the task has a note, the row shows a note button.
     var openNote: (() -> Void)?
+    /// What the selected filter pins. Every row would repeat it, so it gets no badge.
+    var pins = TCFilterPins()
 
     @AppStorage(TCUserDefaults.taskCellLineLimit.rawValue) private var lineLimit: Int = 1
 
-    private var userTags: [TCTag] {
-        task.tags?.filter { !$0.isSynthetic() } ?? []
+    private var shownProject: String? {
+        guard let project = task.project, project != pins.project else { return nil }
+        return project
+    }
+
+    private var shownPriority: TCTask.Priority? {
+        guard let priority = task.priority, priority != .none, priority != pins.priority else { return nil }
+        return priority
+    }
+
+    private var shownTags: [TCTag] {
+        task.tags?.filter { !$0.isSynthetic() && !pins.tags.contains($0.name) } ?? []
     }
 
     private var isOverdue: Bool {
@@ -18,7 +30,7 @@ public struct TaskCellView: View {
     }
 
     private var hasDetails: Bool {
-        task.project != nil || task.priority != nil || !userTags.isEmpty || task.due != nil
+        shownProject != nil || shownPriority != nil || !shownTags.isEmpty || task.due != nil
     }
 
     public var body: some View {
@@ -58,13 +70,13 @@ public struct TaskCellView: View {
             }
             if hasDetails {
                 HStack(spacing: 6) {
-                    if let project = task.project {
+                    if let project = shownProject {
                         TagBadge(text: project, color: .blue)
                     }
-                    if let priority = task.priority, priority != .none {
+                    if let priority = shownPriority {
                         TagBadge(text: priority.rawValue, color: priorityColor(priority), tintedText: true)
                     }
-                    ForEach(userTags, id: \.name) { tag in
+                    ForEach(shownTags, id: \.name) { tag in
                         TagBadge(text: tag.name, color: .green)
                     }
                     Spacer()

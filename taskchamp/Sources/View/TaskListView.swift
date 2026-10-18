@@ -90,9 +90,11 @@ public struct TaskListView: View {
 
     public var body: some View {
         List(selection: $selection) {
+            // Once per list, not per row: it parses the filter.
+            let pins = selectedFilter.pins
             ForEach(searchedTasks, id: \.uuid) { task in
                 NavigationLink(value: task) {
-                    TaskCellView(task: task, openNote: isEditModeActive ? nil : { openNote(task) })
+                    TaskCellView(task: task, openNote: isEditModeActive ? nil : { openNote(task) }, pins: pins)
                 }
                 .if(task.status != .deleted) {
                     $0.swipeActions(edge: .trailing, allowsFullSwipe: true) {

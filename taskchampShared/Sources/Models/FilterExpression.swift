@@ -70,21 +70,63 @@ public indirect enum FilterExpression {
         }
     }
 
-    /// The project every matching task must have, e.g. `project:work +urgent` → `work`.
+    /// The project every matching task must have, e.g. `project:work +urgent` → `work`, or
+    /// `(project:work +a) or (project:work +b)` → `work`.
     /// `nil` when the filter allows more than one project (`project:a or project:b`) or none.
     public var requiredProject: String? {
-        let projects = Set(requiredProjects)
-        return projects.count == 1 ? projects.first : nil
+        requiredValue { expression in
+            if case let .project(name) = expression, !name.isEmpty {
+                return name
+            }
+            return nil
+        }
     }
 
-    private var requiredProjects: [String] {
+    /// The priority every matching task must have, by the same rules as `requiredProject`.
+    public var requiredPriority: TCTask.Priority? {
+        requiredValue { expression in
+            if case let .priority(prio) = expression {
+                return prio
+            }
+            return nil
+        }
+    }
+
+    /// The tags every matching task must have, e.g. `(+a +b) or (+a +c)` → `[a]`.
+    public var requiredTags: Set<String> {
         switch self {
-        case let .project(name):
-            return name.isEmpty ? [] : [name]
+        case let .tag(name):
+            return [name]
         case let .and(expressions):
-            return expressions.flatMap(\.requiredProjects)
+            return expressions.reduce(into: Set<String>()) { $0.formUnion($1.requiredTags) }
+        case let .or(expressions):
+            guard let first = expressions.first else { return [] }
+            return expressions.dropFirst().reduce(first.requiredTags) { $0.intersection($1.requiredTags) }
         default:
             return []
+        }
+    }
+
+    /// The one value `atom` reads from the filter's terms that every matching task must share.
+    /// `nil` when an `and` holds two different values or an `or` branch allows another.
+    private func requiredValue<Value: Hashable>(_ atom: (FilterExpression) -> Value?) -> Value? {
+        let values = Set(requiredValues(atom))
+        return values.count == 1 ? values.first : nil
+    }
+
+    private func requiredValues<Value: Hashable>(_ atom: (FilterExpression) -> Value?) -> [Value] {
+        switch self {
+        case let .and(expressions):
+            return expressions.flatMap { $0.requiredValues(atom) }
+        case let .or(expressions):
+            // Only a value that every branch requires.
+            let branches = expressions.map { $0.requiredValue(atom) }
+            guard let first = branches.compactMap({ $0 }).first, branches.allSatisfy({ $0 == first }) else {
+                return []
+            }
+            return [first]
+        default:
+            return atom(self).map { [$0] } ?? []
         }
     }
 

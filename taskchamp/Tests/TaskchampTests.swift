@@ -88,6 +88,48 @@ final class TaskchampTests: XCTestCase {
         XCTAssertNil(TCFilter.defaultFilter.requiredProject)
     }
 
+    func test_requiredProject_orOfSameProject() {
+        XCTAssertEqual(requiredProject("project:a or project:a"), "a")
+        XCTAssertEqual(requiredProject("(project:a +x) or (project:a +y)"), "a")
+    }
+
+    func test_requiredProject_orBranchWithConflict() {
+        XCTAssertNil(requiredProject("(project:a project:b) or project:a"))
+    }
+
+    // MARK: - Filter pins
+
+    private func pins(_ filter: String) -> TCFilterPins {
+        TCFilter(fullDescription: filter).pins
+    }
+
+    func test_requiredPriority() {
+        XCTAssertEqual(pins("prio:H +x").priority, .high)
+        XCTAssertEqual(pins("(prio:H project:a) or (prio:H project:b)").priority, .high)
+        XCTAssertNil(pins("prio:H or prio:L").priority)
+        XCTAssertNil(pins("prio:H prio:L").priority)
+        XCTAssertNil(pins("project:a").priority)
+    }
+
+    func test_requiredTags() {
+        XCTAssertEqual(pins("+a +b project:x").tags, ["a", "b"])
+        XCTAssertEqual(pins("+a or +b").tags, [])
+        XCTAssertEqual(pins("(+a +b) or (+a +c)").tags, ["a"])
+        XCTAssertEqual(pins("-a").tags, [])
+    }
+
+    func test_pins_allThree() {
+        XCTAssertEqual(
+            pins("project:work prio:H +x status:pending"),
+            TCFilterPins(project: "work", priority: .high, tags: ["x"])
+        )
+    }
+
+    func test_pins_defaultAndUnparseableFilters() {
+        XCTAssertEqual(TCFilter.defaultFilter.pins, TCFilterPins())
+        XCTAssertEqual(pins("whatever words"), TCFilterPins())
+    }
+
     // MARK: - Date filters
 
     private let now: Date = {
