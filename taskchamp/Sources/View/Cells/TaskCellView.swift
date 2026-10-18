@@ -129,7 +129,7 @@ public struct TaskCellView: View {
         }
     }
 
-    /// The note button, or an empty slot of the same width, so dates end at the same place on every row.
+    /// The note button, or an invisible placeholder of the same width, so dates end at the same place on every row.
     @ViewBuilder
     private func noteSlot(_ openNote: @escaping () -> Void) -> some View {
         let glyph = Image(systemName: SFSymbols.noteOpen.rawValue).font(.caption)
