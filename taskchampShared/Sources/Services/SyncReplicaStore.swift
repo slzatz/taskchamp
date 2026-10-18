@@ -15,9 +15,23 @@ final class SyncReplicaStore: @unchecked Sendable {
     private var path: String?
 
     /// Runs `body` on the sync queue with the sync replica for `path`, opening it if needed.
+    ///
+    /// While `body` runs, the process asks iOS not to suspend it. A sync holds the database's write
+    /// lock in the shared app group, and iOS kills a process suspended with that lock held
+    /// (0xDEAD10CC), e.g. the app sent to the background mid-sync.
     func run(path: String, _ body: @escaping @Sendable (Replica) throws -> Bool) async throws -> Bool {
         try await withCheckedThrowingContinuation { continuation in
             queue.async {
+                let finished = DispatchSemaphore(value: 0)
+                defer { finished.signal() }
+                // The activity runs on its own thread and holds the request until the sync finishes.
+                // Called again with `expired` when the time runs out; the sync can't be stopped
+                // then, so there's nothing to clean up.
+                ProcessInfo.processInfo.performExpiringActivity(withReason: "Syncing tasks") { expired in
+                    if !expired {
+                        finished.wait()
+                    }
+                }
                 do {
                     let replica = self.replica(for: path)
                     try continuation.resume(returning: body(replica))
