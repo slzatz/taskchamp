@@ -38,3 +38,20 @@ struct ViewFirstAppearModifier: ViewModifier {
         }
     }
 }
+
+public extension View {
+    /// Makes Return in a multi-line text field end editing instead of adding a
+    /// line. A `TextField(axis: .vertical)` puts Return's newline into the
+    /// text, so it is taken out here. Task descriptions and the command line
+    /// are single lines in Taskwarrior. Newlines in pasted text become spaces.
+    func returnEndsEditing(_ text: Binding<String>, perform action: @escaping () -> Void) -> some View {
+        submitLabel(.done)
+            .onChange(of: text.wrappedValue) { _, newValue in
+                guard newValue.contains(where: \.isNewline) else {
+                    return
+                }
+                text.wrappedValue = newValue.split(whereSeparator: \.isNewline).joined(separator: " ")
+                action()
+            }
+    }
+}

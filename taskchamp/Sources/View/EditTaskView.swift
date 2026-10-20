@@ -1,7 +1,7 @@
 import SwiftUI
 import taskchampShared
 
-public struct EditTaskView: View, UseKeyboardToolbar {
+public struct EditTaskView: View {
     @State var task: TCTask
 
     @Environment(\.dismiss) var dismiss
@@ -54,15 +54,9 @@ public struct EditTaskView: View, UseKeyboardToolbar {
     public var body: some View {
         Form {
             Section {
-                ZStack(alignment: .topLeading) {
-                    Text(description.isEmpty ? " " : description)
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 5)
-                        .opacity(0)
-                    TextEditor(text: $description)
-                        .focused($focusedField, equals: .description)
-                }
-                .frame(minHeight: 40)
+                TextField("", text: $description, axis: .vertical)
+                    .focused($focusedField, equals: .description)
+                    .returnEndsEditing($description) { focusedField = nil }
                 SelectProjectButton(project: $project) {
                     showProjectPopover = true
                 }
@@ -172,19 +166,6 @@ public struct EditTaskView: View, UseKeyboardToolbar {
                 } label: {
                     Label("Delete", systemImage: SFSymbols.trash.rawValue)
                 }
-            }
-            ToolbarItem(placement: .keyboard) {
-                KeyboardToolbarView(
-                    onPrevious: {
-                        calculatePreviousField()
-                    },
-                    onNext: {
-                        calculateNextField()
-                    },
-                    onDismiss: {
-                        onDismissKeyboard()
-                    }
-                )
             }
         }
         .onChange(

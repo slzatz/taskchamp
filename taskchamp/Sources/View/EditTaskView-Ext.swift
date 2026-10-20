@@ -18,18 +18,6 @@ extension EditTaskView {
             task.tags ?? [] != tags
     }
 
-    func calculateNextField() {
-        focusedField = nil
-    }
-
-    func calculatePreviousField() {
-        focusedField = nil
-    }
-
-    func onDismissKeyboard() {
-        focusedField = nil
-    }
-
     /// Opens the task's note in VimNotes, which finds it by the task's uuid or
     /// creates it. The task is annotated only once VimNotes has taken the URL.
     func handleVimangoTap() {

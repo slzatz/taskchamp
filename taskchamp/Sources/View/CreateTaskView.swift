@@ -42,26 +42,16 @@ public struct CreateTaskView: View, UseKeyboardToolbar {
         case description
     }
 
+    func skipNextAndPrevious() -> Bool {
+        return true
+    }
+
     func calculateNextField() {
-        switch focusedField {
-        case .description:
-            focusedField = .nlp
-        case .nlp:
-            focusedField = .nlp
-        default:
-            focusedField = nil
-        }
+        // The keyboard toolbar has no next/previous buttons on this screen
     }
 
     func calculatePreviousField() {
-        switch focusedField {
-        case .description:
-            focusedField = .description
-        case .nlp:
-            focusedField = .description
-        default:
-            focusedField = nil
-        }
+        // The keyboard toolbar has no next/previous buttons on this screen
     }
 
     func onDismissKeyboard() {
@@ -82,6 +72,7 @@ public struct CreateTaskView: View, UseKeyboardToolbar {
                     TextField("", text: $description, axis: .vertical)
                         .lineLimit(1 ... 5)
                         .focused($focusedField, equals: .description)
+                        .returnEndsEditing($description) { focusedField = nil }
                         .bold()
                     SelectProjectButton(project: $project) {
                         showProjectPopover = true
@@ -123,11 +114,13 @@ public struct CreateTaskView: View, UseKeyboardToolbar {
                     }
                 }
                 Section {
-                    TextEditor(text: $nlpInput)
+                    TextField("", text: $nlpInput, axis: .vertical)
+                        .lineLimit(1 ... 5)
                         .font(.system(.body, design: .monospaced))
                         .autocapitalization(.none)
                         .autocorrectionDisabled()
                         .focused($focusedField, equals: .nlp)
+                        .returnEndsEditing($nlpInput) { focusedField = nil }
                         .onChange(of: nlpInput) { _, input in
                             let nlpTask = NLPService.shared.createTask(from: input)
                             self.description = nlpTask.description
@@ -247,21 +240,26 @@ public struct CreateTaskView: View, UseKeyboardToolbar {
                         }
                     }
                 }
-                ToolbarItem(placement: .keyboard) {
-                    KeyboardToolbarView(
-                        onPrevious: {
-                            calculatePreviousField()
-                        },
-                        onNext: {
-                            calculateNextField()
-                        },
-                        onDismiss: {
-                            onDismissKeyboard()
-                        },
-                        skipNextAndPrevious: { return focusedField == .nlp }
-                        // swiftlint:disable:next multiple_closures_with_trailing_closure
-                    ) {
-                        if focusedField == .nlp {
+                // Only the command line field gets the bar above the keyboard,
+                // for its autocomplete suggestions. With the description
+                // focused it was an empty box with next/previous carets.
+                if focusedField == .nlp {
+                    ToolbarItem(placement: .keyboard) {
+                        KeyboardToolbarView(
+                            onPrevious: {
+                                calculatePreviousField()
+                            },
+                            onNext: {
+                                calculateNextField()
+                            },
+                            onDismiss: {
+                                onDismissKeyboard()
+                            },
+                            skipNextAndPrevious: {
+                                skipNextAndPrevious()
+                            }
+                            // swiftlint:disable:next multiple_closures_with_trailing_closure
+                        ) {
                             AutocompleteBarView(
                                 text: $nlpInput,
                                 surface: .creation
