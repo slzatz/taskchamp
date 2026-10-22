@@ -11,7 +11,26 @@ public protocol SyncServiceProtocol: Sendable {
     /// Syncs `replica` with the backend, blocking until done. Called by `TaskchampionService`
     /// on its serial sync queue with the dedicated sync replica; never call it on the main thread.
     static func sync(replica: Replica) throws -> Bool
+    /// Asks the backend, without syncing, whether it has changes the database in `path` hasn't
+    /// pulled. Nil when it can't tell. Blocks on the network, so never call it on the main thread.
+    static func probe(path: String) -> Bool?
     static func isAvailable() -> Bool
+}
+
+public extension SyncServiceProtocol {
+    /// No sync, and iCloud Sync (hidden in this fork), have no server to ask.
+    static func probe(path _: String) -> Bool? {
+        return nil
+    }
+
+    /// The bridge's probe result: 1 the server has changes, 0 it hasn't, -1 it couldn't tell.
+    static func probeAnswer(_ code: Int32) -> Bool? {
+        switch code {
+        case 1: return true
+        case 0: return false
+        default: return nil
+        }
+    }
 }
 
 // MARK: - NoSyncService
@@ -101,6 +120,22 @@ public final class RemoteSyncService: SyncServiceProtocol {
             remoteEncryptionSecret.intoRustString()
         )
     }
+
+    public static func probe(path: String) -> Bool? {
+        guard let remoteServerUrl = getRemoteServerUrl(),
+              let remoteClientId = getRemoteClientId(),
+              let remoteEncryptionSecret = getRemoteEncryptionSecret()
+        else {
+            return nil
+        }
+
+        return probeAnswer(Taskchampion.probe_remote_server(
+            path.intoRustString(),
+            remoteServerUrl.intoRustString(),
+            remoteClientId.intoRustString(),
+            remoteEncryptionSecret.intoRustString()
+        ))
+    }
 }
 
 public final class GcpSyncService: SyncServiceProtocol {
@@ -143,6 +178,21 @@ public final class GcpSyncService: SyncServiceProtocol {
             getGcpCredentialPath()?.intoRustString(),
             encryptionSecret.intoRustString()
         )
+    }
+
+    public static func probe(path: String) -> Bool? {
+        guard let bucket = getGcpBucket(),
+              let encryptionSecret = getGcpEncryptionSecret()
+        else {
+            return nil
+        }
+
+        return probeAnswer(Taskchampion.probe_gcp(
+            path.intoRustString(),
+            bucket.intoRustString(),
+            getGcpCredentialPath()?.intoRustString(),
+            encryptionSecret.intoRustString()
+        ))
     }
 }
 
@@ -210,6 +260,27 @@ public final class AwsSyncService: SyncServiceProtocol {
             secretAccessKey.intoRustString(),
             encryptionSecret.intoRustString()
         )
+    }
+
+    public static func probe(path: String) -> Bool? {
+        guard let bucket = getAwsBucket(),
+              let accessKeyId = getAwsAccessKeyId(),
+              let secretAccessKey = getAwsSecretAccessKey(),
+              let encryptionSecret = getAwsEncryptionSecret()
+        else {
+            return nil
+        }
+
+        return probeAnswer(Taskchampion.probe_aws(
+            path.intoRustString(),
+            nonEmptyString(getAwsRegion())?.intoRustString(),
+            bucket.intoRustString(),
+            nonEmptyString(getAwsEndpointUrl())?.intoRustString(),
+            getAwsForcePathStyle(),
+            accessKeyId.intoRustString(),
+            secretAccessKey.intoRustString(),
+            encryptionSecret.intoRustString()
+        ))
     }
 
     private static func nonEmptyString(_ value: String?) -> String? {

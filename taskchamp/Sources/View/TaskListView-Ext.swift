@@ -182,6 +182,14 @@ extension TaskListView {
         }
     }
 
+    /// No sync and iCloud Sync (hidden in this fork) have no server to show a sync button for.
+    var hasSyncServer: Bool {
+        switch selectedSyncType {
+        case .remote?, .aws?, .gcp?: true
+        default: false
+        }
+    }
+
     func updateTasksWithSync() async {
         do {
             globalState.isSyncingTasks = true

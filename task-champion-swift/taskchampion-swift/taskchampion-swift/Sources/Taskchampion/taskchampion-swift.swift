@@ -5,6 +5,18 @@ public func new_replica_in_memory() -> Replica {
 public func new_replica_on_disk<GenericIntoRustString: IntoRustString>(_ taskdb_dir: GenericIntoRustString, _ create_if_missing: Bool, _ read_write: Bool) -> Replica {
     Replica(ptr: __swift_bridge__$new_replica_on_disk({ let rustString = taskdb_dir.intoRustString(); rustString.isOwned = false; return rustString.ptr }(), create_if_missing, read_write))
 }
+public func count_unsynced_tasks<GenericIntoRustString: IntoRustString>(_ taskdb_dir: GenericIntoRustString) -> Int64 {
+    __swift_bridge__$count_unsynced_tasks({ let rustString = taskdb_dir.intoRustString(); rustString.isOwned = false; return rustString.ptr }())
+}
+public func probe_remote_server<GenericIntoRustString: IntoRustString>(_ taskdb_dir: GenericIntoRustString, _ url: GenericIntoRustString, _ client_id: GenericIntoRustString, _ encryption_secret: GenericIntoRustString) -> Int32 {
+    __swift_bridge__$probe_remote_server({ let rustString = taskdb_dir.intoRustString(); rustString.isOwned = false; return rustString.ptr }(), { let rustString = url.intoRustString(); rustString.isOwned = false; return rustString.ptr }(), { let rustString = client_id.intoRustString(); rustString.isOwned = false; return rustString.ptr }(), { let rustString = encryption_secret.intoRustString(); rustString.isOwned = false; return rustString.ptr }())
+}
+public func probe_gcp<GenericIntoRustString: IntoRustString>(_ taskdb_dir: GenericIntoRustString, _ bucket: GenericIntoRustString, _ credential_path: Optional<GenericIntoRustString>, _ encryption_secret: GenericIntoRustString) -> Int32 {
+    __swift_bridge__$probe_gcp({ let rustString = taskdb_dir.intoRustString(); rustString.isOwned = false; return rustString.ptr }(), { let rustString = bucket.intoRustString(); rustString.isOwned = false; return rustString.ptr }(), { if let rustString = optionalStringIntoRustString(credential_path) { rustString.isOwned = false; return rustString.ptr } else { return nil } }(), { let rustString = encryption_secret.intoRustString(); rustString.isOwned = false; return rustString.ptr }())
+}
+public func probe_aws<GenericIntoRustString: IntoRustString>(_ taskdb_dir: GenericIntoRustString, _ region: Optional<GenericIntoRustString>, _ bucket: GenericIntoRustString, _ endpoint_url: Optional<GenericIntoRustString>, _ force_path_style: Bool, _ access_key_id: GenericIntoRustString, _ secret_access_key: GenericIntoRustString, _ encryption_secret: GenericIntoRustString) -> Int32 {
+    __swift_bridge__$probe_aws({ let rustString = taskdb_dir.intoRustString(); rustString.isOwned = false; return rustString.ptr }(), { if let rustString = optionalStringIntoRustString(region) { rustString.isOwned = false; return rustString.ptr } else { return nil } }(), { let rustString = bucket.intoRustString(); rustString.isOwned = false; return rustString.ptr }(), { if let rustString = optionalStringIntoRustString(endpoint_url) { rustString.isOwned = false; return rustString.ptr } else { return nil } }(), force_path_style, { let rustString = access_key_id.intoRustString(); rustString.isOwned = false; return rustString.ptr }(), { let rustString = secret_access_key.intoRustString(); rustString.isOwned = false; return rustString.ptr }(), { let rustString = encryption_secret.intoRustString(); rustString.isOwned = false; return rustString.ptr }())
+}
 public func new_operations() -> RustVec<Operation> {
     RustVec(ptr: __swift_bridge__$new_operations())
 }

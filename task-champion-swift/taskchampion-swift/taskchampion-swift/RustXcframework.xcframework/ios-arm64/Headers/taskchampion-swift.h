@@ -114,6 +114,10 @@ void* __swift_bridge__$Replica$update_task(void* self, void* uuid, void* descrip
 void* __swift_bridge__$Replica$start_task(void* self, void* uuid);
 void* __swift_bridge__$Replica$stop_task(void* self, void* uuid);
 void* __swift_bridge__$Replica$annotate_task(void* self, void* uuid, void* description);
+int64_t __swift_bridge__$count_unsynced_tasks(void* taskdb_dir);
+int32_t __swift_bridge__$probe_remote_server(void* taskdb_dir, void* url, void* client_id, void* encryption_secret);
+int32_t __swift_bridge__$probe_gcp(void* taskdb_dir, void* bucket, void* credential_path, void* encryption_secret);
+int32_t __swift_bridge__$probe_aws(void* taskdb_dir, void* region, void* bucket, void* endpoint_url, bool force_path_style, void* access_key_id, void* secret_access_key, void* encryption_secret);
 void* __swift_bridge__$new_operations(void);
 void* __swift_bridge__$TaskData$get_uuid(void* self);
 void* __swift_bridge__$Tag$get_value(void* self);

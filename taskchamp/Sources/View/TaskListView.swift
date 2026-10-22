@@ -71,21 +71,14 @@ public struct TaskListView: View {
         )
     }
 
-    private var headerView: some View {
-        HStack(spacing: 6) {
-            DevBadge()
-            if isEditModeActive {
-                Text(headerTitle)
-                    .font(.headline)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-            } else {
-                filterSwitcherMenu
-            }
-            if globalState.isSyncingTasks {
-                ProgressView()
-                    .controlSize(.small)
-            }
+    @ViewBuilder private var headerView: some View {
+        if isEditModeActive {
+            Text(headerTitle)
+                .font(.headline)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        } else {
+            filterSwitcherMenu
         }
     }
 
@@ -257,6 +250,11 @@ public struct TaskListView: View {
                 }
             }
             ToolbarItemGroup(placement: .topBarTrailing) {
+                if hasSyncServer {
+                    SyncButton(isSyncing: globalState.isSyncingTasks || SyncStatus.shared.isSyncing) {
+                        Task { await updateTasksWithSync() }
+                    }
+                }
                 Menu {
                     Link(
                         "Documentation",

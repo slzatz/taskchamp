@@ -57,11 +57,7 @@ let project = Project(
                 .target(name: "taskchampShared"),
                 .target(name: "taskchampWidget"),
                 .target(name: "taskchampShareExtension")
-            ],
-            settings: .settings(base: [
-                // Shows the DEV badge in the task list header. Remove to hide it.
-                "SWIFT_ACTIVE_COMPILATION_CONDITIONS": "$(inherited) TASKCHAMP_DEV"
-            ])
+            ]
         ),
         .target(
             name: "taskchampTests",

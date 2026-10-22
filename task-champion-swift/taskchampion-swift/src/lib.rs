@@ -97,6 +97,34 @@ mod ffi {
         fn annotate_task(&mut self, uuid: String, description: String) -> Option<Task>;
     }
 
+    // Read-only checks for the app's sync button. Each opens its own read-only connection to
+    // the database in `taskdb_dir`, so they can run beside a Replica without touching it.
+    extern "Rust" {
+        fn count_unsynced_tasks(taskdb_dir: String) -> i64;
+        fn probe_remote_server(
+            taskdb_dir: String,
+            url: String,
+            client_id: String,
+            encryption_secret: String,
+        ) -> i32;
+        fn probe_gcp(
+            taskdb_dir: String,
+            bucket: String,
+            credential_path: Option<String>,
+            encryption_secret: String,
+        ) -> i32;
+        fn probe_aws(
+            taskdb_dir: String,
+            region: Option<String>,
+            bucket: String,
+            endpoint_url: Option<String>,
+            force_path_style: bool,
+            access_key_id: String,
+            secret_access_key: String,
+            encryption_secret: String,
+        ) -> i32;
+    }
+
     extern "Rust" {
         type Operation;
 
@@ -750,6 +778,134 @@ impl Replica {
             Some(Task(task))
         })
     }
+}
+
+// SYNC STATUS
+
+type CheckResult<T> = Result<T, Box<dyn std::error::Error>>;
+
+/// Runs `check` on a runtime of its own, returning `failed` if it errors or panics.
+fn run_check<T>(label: &str, failed: T, check: impl std::future::Future<Output = CheckResult<T>>) -> T {
+    let result = catch_unwind(AssertUnwindSafe(|| -> CheckResult<T> {
+        let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build()?;
+        runtime.block_on(check)
+    }));
+    match result {
+        Ok(Ok(value)) => value,
+        Ok(Err(e)) => {
+            eprintln!("[{}] ERROR: {}", label, e);
+            failed
+        }
+        Err(e) => {
+            eprintln!("[{}] PANIC: Caught panic: {:?}", label, e);
+            failed
+        }
+    }
+}
+
+/// Opens the database in `taskdb_dir` read-only. It never creates the database or upgrades
+/// its schema; the Replica that shares the file does that.
+async fn open_read_only(taskdb_dir: &str) -> CheckResult<tc::SqliteStorage> {
+    let storage =
+        tc::SqliteStorage::new(PathBuf::from(taskdb_dir), tc::storage::AccessMode::ReadOnly, false)
+            .await?;
+    Ok(storage)
+}
+
+/// How many tasks have local changes the server doesn't have yet, or -1 if it can't tell.
+/// Tasks, not operations: one edit is several operations.
+fn count_unsynced_tasks(taskdb_dir: String) -> i64 {
+    run_check("Unsynced Tasks", -1, async move {
+        use tc::storage::Storage;
+        let mut storage = open_read_only(&taskdb_dir).await?;
+        let mut txn = storage.txn().await?;
+        let uuids: std::collections::HashSet<tc::Uuid> = txn
+            .unsynced_operations()
+            .await?
+            .iter()
+            .filter_map(|op| op.get_uuid())
+            .collect();
+        Ok(uuids.len() as i64)
+    })
+}
+
+/// Whether the server has a version this replica hasn't pulled: 1 if it has, 0 if not, -1 if
+/// it can't tell. It asks only for the child of the replica's base version, one request, and
+/// applies nothing, so neither the database nor the server changes.
+fn probe_server(taskdb_dir: String, config: tc::ServerConfig, label: &str) -> i32 {
+    run_check(label, -1, async move {
+        use tc::storage::Storage;
+        // Read in a block of its own, so the transaction is closed before the network request.
+        let base_version = {
+            let mut storage = open_read_only(&taskdb_dir).await?;
+            let mut txn = storage.txn().await?;
+            txn.base_version().await?
+        };
+        let mut server = config.into_server().await?;
+        match server.get_child_version(base_version).await? {
+            tc::server::GetVersionResult::Version { .. } => Ok(1),
+            tc::server::GetVersionResult::NoSuchVersion => Ok(0),
+        }
+    })
+}
+
+fn probe_remote_server(
+    taskdb_dir: String,
+    url: String,
+    client_id: String,
+    encryption_secret: String,
+) -> i32 {
+    let client_id = match tc::Uuid::parse_str(&client_id) {
+        Ok(u) => u,
+        Err(e) => {
+            eprintln!("[Remote Probe] ERROR: Failed to parse client UUID: {}", e);
+            return -1;
+        }
+    };
+    let config = tc::ServerConfig::Remote {
+        url,
+        client_id,
+        encryption_secret: encryption_secret.into_bytes(),
+    };
+    probe_server(taskdb_dir, config, "Remote Probe")
+}
+
+fn probe_gcp(
+    taskdb_dir: String,
+    bucket: String,
+    credential_path: Option<String>,
+    encryption_secret: String,
+) -> i32 {
+    let config = tc::ServerConfig::Gcp {
+        bucket,
+        credential_path,
+        encryption_secret: encryption_secret.into_bytes(),
+    };
+    probe_server(taskdb_dir, config, "GCP Probe")
+}
+
+fn probe_aws(
+    taskdb_dir: String,
+    region: Option<String>,
+    bucket: String,
+    endpoint_url: Option<String>,
+    force_path_style: bool,
+    access_key_id: String,
+    secret_access_key: String,
+    encryption_secret: String,
+) -> i32 {
+    let config = tc::ServerConfig::Aws {
+        region,
+        bucket,
+        endpoint_url,
+        force_path_style,
+        credentials: tc::server::AwsCredentials::AccessKey {
+            access_key_id,
+            secret_access_key,
+        },
+        encryption_secret: encryption_secret.into_bytes(),
+    };
+    probe_server(taskdb_dir, config, "S3 Probe")
 }
 
 // OPERATION

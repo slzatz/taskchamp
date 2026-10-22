@@ -19,7 +19,7 @@ final class SyncReplicaStore: @unchecked Sendable {
     /// While `body` runs, the process asks iOS not to suspend it. A sync holds the database's write
     /// lock in the shared app group, and iOS kills a process suspended with that lock held
     /// (0xDEAD10CC), e.g. the app sent to the background mid-sync.
-    func run(path: String, _ body: @escaping @Sendable (Replica) throws -> Bool) async throws -> Bool {
+    func run<T: Sendable>(path: String, _ body: @escaping @Sendable (Replica) throws -> T) async throws -> T {
         try await withCheckedThrowingContinuation { continuation in
             queue.async {
                 let finished = DispatchSemaphore(value: 0)

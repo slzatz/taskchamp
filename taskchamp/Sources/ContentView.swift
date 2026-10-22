@@ -147,6 +147,19 @@ public struct ContentView: View {
                 globalState.isSyncingTasks = false
             }
         }
+        // Check the server, never sync, while the app is in front: on each return (debounced in
+        // SyncStatus.probe), then every 15 minutes for an app left open. Cancelled when it leaves
+        // the foreground. On the stack, not its root, which re-runs a `.task` on each pop.
+        .task(id: scenePhase == .active) {
+            guard scenePhase == .active else { return }
+            SyncStatus.shared.startNetworkMonitor()
+            await SyncStatus.shared.probe()
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(15 * 60))
+                guard !Task.isCancelled else { return }
+                await SyncStatus.shared.probe()
+            }
+        }
         .fullScreenCover(isPresented: $isShowingSyncServiceModal) {
             SyncServiceView(
                 isShowingSyncServiceModal: $isShowingSyncServiceModal,

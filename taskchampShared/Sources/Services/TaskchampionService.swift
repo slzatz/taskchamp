@@ -75,10 +75,13 @@ public class TaskchampionService {
 
             let syncService = getSyncServiceFromType(syncType)
 
+            await SyncStatus.shared.syncStarted()
             do {
                 // Sync on the dedicated sync replica, never the main-actor one (see SyncReplicaStore).
-                let synced = try await syncReplicaStore.run(path: path) { replica in
-                    try syncService.sync(replica: replica)
+                let (synced, unsyncedTasks) = try await syncReplicaStore.run(path: path) { replica in
+                    let synced = try syncService.sync(replica: replica)
+                    // Counted on the sync queue, so it never waits on a sync of ours holding the lock.
+                    return (synced, Int(Taskchampion.count_unsynced_tasks(path)))
                 }
 
                 if synced {
@@ -86,18 +89,31 @@ public class TaskchampionService {
                 } else {
                     needToSync = true
                 }
+                await SyncStatus.shared.syncEnded(succeeded: synced, unsyncedTasks: unsyncedTasks)
                 if !Self.isWidgetExtension {
                     WidgetCenter.shared.reloadAllTimelines()
                 }
                 onSync()
             } catch is CancellationError {
                 // do nothing: task was canceled before finishing
+                await SyncStatus.shared.syncEnded(succeeded: nil, unsyncedTasks: -1)
             } catch {
                 needToSync = true
+                await SyncStatus.shared.syncEnded(succeeded: false, unsyncedTasks: -1)
                 onSync()
             }
         }
         try await currentTask?.value
+    }
+
+    /// A check, to run off the main thread, of whether the selected sync backend has changes this
+    /// device hasn't pulled. Nil when no database is open. See `SyncStatus.probe`.
+    func serverProbe() -> (@Sendable () -> Bool?)? {
+        guard let path else {
+            return nil
+        }
+        let syncService = getSyncServiceFromType(FileService.shared.getSelectedSyncType() ?? .none)
+        return { syncService.probe(path: path) }
     }
 
     public func sync(onSync: @escaping () -> Void = {}) async throws {

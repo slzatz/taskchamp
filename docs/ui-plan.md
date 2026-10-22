@@ -21,7 +21,9 @@ This plan was written in one session and is meant to be implemented in a later o
 - `taskchamp/Sources/View/Cells/TaskCellView.swift`: row is a two-line `VStack`. Line 1 is the description (line limit from the `taskCellLineLimit` user setting, 1–5, default 2) plus the project in italic subheadline on the right. Line 2 is the due date, an active icon, recurrence, and the colored priority letter. There is `.padding(.vertical, 3)` on line 1.
 - `Project.swift`: targets and base settings (Tuist; run `make generate_no_open` after edits).
 
-## 1. DEV badge on the main screen — DONE (2026-09-27)
+## 1. DEV badge on the main screen — DONE (2026-09-27), REMOVED (2026-10-22)
+
+Removed for the sync button's room (Round 5); the home-screen name "Taskchamp Dev" and the icon still tell the builds apart.
 
 User choice: a small colored "DEV" capsule in the nav bar. No accent-color or icon change.
 
@@ -233,3 +235,15 @@ The user wants to come back to these after Round 4.
 8. **Title Size** goes in both the Options menu and App Settings.
 9. **Keep "Max lines per task"** alongside Title Size. They are separate settings: size sets each line's height, max lines sets how many lines the description may wrap to (in its left column, see item 2), and row height = lines × line height + padding. The user plans the same change for VimNotes' `NoteRowView`, which has only ever shown one line.
 10. **Badges beside the description** (after trying the first version): project, then priority, then tags, right after the description; the date and note button stay on the right. The cost, accepted: priority is no longer in a column.
+
+# Round 5 — sync button (2026-10-22)
+
+User request: a sync indicator like VimNotes' toolbar cloud, as a reminder to refresh and a button to press. The DEV badge and the header's sync spinner are gone; the cloud sits left of the `…` menu and shows the spinner itself.
+
+- **States:** spinner while syncing; `checkmark.icloud` when up to date; orange `icloud.and.arrow.up` + count of tasks with unsynced changes; orange `icloud.and.arrow.down` when the server has changes; orange `arrow.triangle.2.circlepath.icloud` for both; orange `exclamationmark.icloud` when the last sync failed, still with the up count beside it.
+- **Counts (user decision):** use what's cheap. The up count is tasks, not operations. The down arrow has no number, since the only cheap server count is syncs from other machines, a different unit from tasks.
+- **No automatic sync on returning to the app**, as in VimNotes: the probe only checks.
+- **Edits keep syncing** (user decision, 2026-10-22). Each app or widget edit syncs right after saving. VimNotes' reason for stopping doesn't apply: taskchampion merges per-field operations, and the sync runs after the save. A failed sync loses nothing, and the widget can't show the cloud. An edit made offline shows the exclamation with the count.
+- **Open risk, not fixed:** the edit screen saves every field from the copy it opened with, so a Mac change to that task synced in while it's open is reverted on save. Fix by saving only the fields the user changed, or re-reading on sync.
+- **Verified in the simulator:** a `task sync` from the Mac turned the cloud into the orange down arrow on the next foreground; the next sync cleared it, and a probe a minute later kept the checkmark. The up count was checked against a copy of the Mac's database (2 tasks, 16 operations → 2). The tap and the up arrow on the device are still to be confirmed on the phone.
+
